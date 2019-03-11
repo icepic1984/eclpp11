@@ -179,8 +179,7 @@ val make_foreign(Args&&... args)
                 ecl_read_from_cstring("finalizer"), ECL_NIL, 1);
     }
     si_set_finalizer(foreign, finalizer::finalizer);
-    return ecl_make_foreign_data(
-        ECL_NIL, sizeof(T), new T(std::forward<Args>(args)...));
+    return foreign;
 }
 
 template <typename T>
