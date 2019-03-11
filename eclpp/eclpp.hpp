@@ -54,13 +54,11 @@ struct convert<double>
 {
     static double to_cpp(cl_object v)
     {
-        std::cout << "df" << std::endl;
-        return ecl_to_double(v);
+        return ecl_double_float(v);
     }
 
     static cl_object to_ecl(double v)
     {
-        std::cout << "ddfdff" << std::endl;
         return ecl_make_double_float(v);
     }
 };
@@ -70,7 +68,7 @@ struct convert<float>
 {
     static float to_cpp(cl_object v)
     {
-        return ecl_to_float(v);
+        return ecl_single_float(v);
     }
     static cl_object to_ecl(float v)
     {
