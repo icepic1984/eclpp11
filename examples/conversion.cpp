@@ -23,4 +23,7 @@ int main(int argc, char** args)
     test_conversion(std::uint32_t(10));
     test_conversion(std::int64_t(10));
     test_conversion(std::uint64_t(10));
+
+    eclpp::val v1(10.0f);
+    eclpp::val v2(10.0);
 }
