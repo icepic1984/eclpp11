@@ -182,9 +182,9 @@ val make_foreign(Args&&... args)
 }
 
 template <typename T>
-T* get_foreign(val v)
+T& get_foreign(val v)
 {
-    return static_cast<T*>(ecl_foreign_data_pointer_safe(v));
+    return *static_cast<T*>(ecl_foreign_data_pointer_safe(v));
 }
 
 template <typename T>
@@ -195,7 +195,7 @@ struct convert_foreign_type
     {
         return make_foreign<T>(std::forward<U>(v));
     }
-    static T* to_cpp(cl_object v)
+    static T& to_cpp(cl_object v)
     {
         return get_foreign<T>(v);
     }
