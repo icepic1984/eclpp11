@@ -158,10 +158,10 @@ template <typename T>
 cl_object finalize(cl_object obj)
 {
     T* data = static_cast<T*>(ecl_foreign_data_pointer_safe(obj));
-    std::cout << "Delete data" << std::endl;
     delete data;
     return ECL_T;
 }
+
 template <typename T>
 cl_object finalizer_storage<T>::finalizer = ECL_NIL;
 
@@ -173,7 +173,6 @@ val make_foreign(Args&&... args)
         ECL_NIL, sizeof(T), new T(std::forward<Args>(args)...));
     if (finalizer::finalizer == ECL_NIL)
     {
-        std::cout << "NIL" << std::endl;
         finalizer::finalizer =
             ecl_make_cfun(reinterpret_cast<cl_objectfn_fixed>(finalize<T>),
                 ecl_read_from_cstring("finalizer"), ECL_NIL, 1);
@@ -187,4 +186,29 @@ T* get_foreign(val v)
 {
     return static_cast<T*>(ecl_foreign_data_pointer_safe(v));
 }
+
+template <typename T>
+struct convert_foreign_type
+{
+    template <typename U>
+    static cl_object to_ecl(U&& v)
+    {
+        return make_foreign<T>(std::forward<U>(v));
+    }
+    static T* to_cpp(cl_object v)
+    {
+        return get_foreign<T>(v);
+    }
+};
+
+// Assume that every other type is foreign
+template <typename T>
+struct convert<T, std::enable_if_t<!std::is_fundamental<T>::value &&
+                                   // only value types are supported at
+                                   // the moment but the story might
+                                   // change later...
+                                   !std::is_pointer<T>::value>>
+    : convert_foreign_type<T>
+{
+};
 } // namespace eclpp
