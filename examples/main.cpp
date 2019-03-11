@@ -1,15 +1,19 @@
 #include <eclpp.hpp>
 #include <iostream>
 
-int main()
+template <typename T>
+void test_conversion(T input)
 {
-    auto bla = eclpp::convert<int>::to_ecl(10);
-    std::cout << eclpp::convert<int>::to_cpp(bla) << std::endl;
+    auto obj = eclpp::convert<T>::to_ecl(input);
+    auto output = eclpp::convert<T>::to_cpp(obj);
+    static_assert(sizeof(input) == sizeof(output));
+    assert(input == output);
+}
 
-    // auto blup = eclpp::convert<double>::to_ecl(1.0);
-    // std::cout << eclpp::convert<double>::to_cpp(blup) << std::endl;
-
-    cl_object b = ecl_make_long_float(10.0);
-    double d = ecl_to_long_double(b);
-    std::cout << d << std::endl;
+int main(int argc, char** args)
+{
+    cl_boot(argc, args);
+    test_conversion(10.0);
+    test_conversion(10.0f);
+    test_conversion(std::uint8_t(10));
 }
