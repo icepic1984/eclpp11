@@ -4,24 +4,13 @@
 
 namespace eclpp
 {
-template <typename T, typename Enable = void>
-struct convert;
 
+// Helper macros
 #define ECL_DECLTYPE_RETURN(...)                                               \
     decltype(__VA_ARGS__)                                                      \
     {                                                                          \
         return __VA_ARGS__;                                                    \
     }
-
-double ecl_to_double_float(cl_object v)
-{
-    return ecl_double_float(v);
-}
-
-double ecl_to_single_float(cl_object v)
-{
-    return ecl_single_float(v);
-}
 
 #define ECL_DECLARE_NUMERIC_TYPE(cpp_name__, ecl_name__)                       \
     template <>                                                                \
@@ -37,6 +26,42 @@ double ecl_to_single_float(cl_object v)
         }                                                                      \
     };
 
+// Helper struct definition to convert numerical types between ecl and
+// cpp.
+template <typename T, typename Enable = void>
+struct convert;
+
+// Helper struct definition to convert wrapper between ecl and cpp.
+template <typename T>
+struct convert_wrapper_type
+{
+    static T to_cpp(cl_object v)
+    {
+        return T{v};
+    }
+    static cl_object to_ecl(T v)
+    {
+        return v.get();
+    }
+};
+
+// Helper function to convert ecl's double float to double. This is
+// needed because we want to tuse the `ECL_DECLARE_NUMERIC_TYPE` macro
+// to generate the conversion struct. Ecl is missing a function with
+// name ecl_to_double_float, therefore we define it our self. This
+// lets us use the macro.
+double ecl_to_double_float(cl_object v)
+{
+    return ecl_double_float(v);
+}
+
+// See above.
+double ecl_to_single_float(cl_object v)
+{
+    return ecl_single_float(v);
+}
+
+// Define conversion between ecl and cpp for numerical types
 ECL_DECLARE_NUMERIC_TYPE(std::int8_t, int8_t);
 ECL_DECLARE_NUMERIC_TYPE(std::uint8_t, uint8_t);
 ECL_DECLARE_NUMERIC_TYPE(std::int16_t, int16_t);
@@ -48,12 +73,119 @@ ECL_DECLARE_NUMERIC_TYPE(std::uint64_t, uint64_t);
 ECL_DECLARE_NUMERIC_TYPE(float, single_float);
 ECL_DECLARE_NUMERIC_TYPE(double, double_float);
 
+// Helper function to convert from cpp to ecl.
 template <typename T>
 auto to_ecl(T&& v) -> ECL_DECLTYPE_RETURN(
     convert<std::decay_t<T>>::to_ecl(std::forward<T>(v)));
 
+// Helper function to convert from ecl to cpp
 template <typename T>
 auto to_cpp(cl_object v)
     -> ECL_DECLTYPE_RETURN(convert<std::decay_t<T>>::to_cpp(v));
 
+struct wrapper
+{
+    wrapper() = default;
+
+    wrapper(cl_object handle)
+        : m_handle(handle)
+    {
+    }
+
+    cl_object get() const
+    {
+        return m_handle;
+    }
+
+    operator cl_object() const
+    {
+        return m_handle;
+    }
+
+    bool operator==(wrapper other)
+    {
+        return m_handle == other.m_handle;
+    }
+
+    bool operator!=(wrapper other)
+    {
+        return m_handle != other.m_handle;
+    }
+
+    cl_object m_handle = ECL_NIL;
+};
+
+struct val : wrapper
+{
+    using base_t = wrapper;
+
+    using base_t::base_t;
+
+    template <typename T, typename = std::enable_if_t<(
+                              !std::is_same<std::decay_t<T>, val>{}
+                              && !std::is_same<std::decay_t<T>, cl_object>{})>>
+    val(T&& x)
+        : base_t(to_ecl(std::forward<T>(x)))
+    {
+    }
+
+    template <typename T, typename = std::enable_if_t<std::is_same<T,
+                              decltype(to_cpp<T>(cl_object{}))>{}>>
+    operator T() const
+    {
+        return to_cpp<T>(m_handle);
+    }
+    template <typename T, typename = std::enable_if_t<std::is_same<T&,
+                              decltype(to_cpp<T>(cl_object{}))>{}>>
+    operator T&() const
+    {
+        return to_cpp<T>(m_handle);
+    }
+};
+
+template <>
+struct convert<val> : convert_wrapper_type<val>
+{
+};
+
+template <typename T>
+struct finalizer_storage
+{
+    static cl_object finalizer;
+};
+
+template <typename T>
+cl_object finalize(cl_object obj)
+{
+    T* data = static_cast<T*>(ecl_foreign_data_pointer_safe(obj));
+    std::cout << "Delete data" << std::endl;
+    delete data;
+    return ECL_T;
+}
+template <typename T>
+cl_object finalizer_storage<T>::finalizer = ECL_NIL;
+
+template <typename T, typename... Args>
+val make_foreign(Args&&... args)
+{
+    using finalizer = finalizer_storage<T>;
+    val foreign = ecl_make_foreign_data(
+        ECL_NIL, sizeof(T), new T(std::forward<Args>(args)...));
+    if (finalizer::finalizer == ECL_NIL)
+    {
+        std::cout << "NIL" << std::endl;
+        finalizer::finalizer =
+            ecl_make_cfun(reinterpret_cast<cl_objectfn_fixed>(finalize<T>),
+                ecl_read_from_cstring("finalizer"), ECL_NIL, 1);
+    }
+    si_set_finalizer(foreign, finalizer::finalizer);
+    return ecl_make_foreign_data(
+        ECL_NIL, sizeof(T), new T(std::forward<Args>(args)...));
+}
+
+template <typename T>
+T* get_foreign(val v)
+{
+    return static_cast<T*>(ecl_foreign_data_pointer_safe(v));
+}
 } // namespace eclpp
