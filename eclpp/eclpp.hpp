@@ -1,6 +1,10 @@
+#pragma once
 #include <ecl/ecl.h>
 #include <cstdint>
 #include <iostream>
+#include <functional>
+#include <boost/callable_traits/args.hpp>
+#include "pack.hpp"
 
 namespace eclpp
 {
@@ -211,4 +215,94 @@ struct convert<T, std::enable_if_t<!std::is_fundamental<T>::value &&
     : convert_foreign_type<T>
 {
 };
+
+template <typename R, typename Fn>
+auto define_function_helper_impl(Fn fn, pack<R>, pack<>)
+{
+    static const Fn fn_ = fn;
+    return []() -> cl_object { return to_ecl(std::invoke(fn_)); };
+}
+
+template <typename Fn, typename R, typename T1>
+auto define_function_helper_impl(Fn fn, pack<R>, pack<T1>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1) -> cl_object {
+        return to_ecl(std::invoke(fn_, to_cpp<T1>(a1)));
+    };
+}
+template <typename Fn, typename R, typename T1, typename T2>
+auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2) -> cl_object {
+        return to_ecl(std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2)));
+    };
+}
+template <typename Fn, typename R, typename T1, typename T2, typename T3>
+auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2, T3>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2, cl_object a3) -> cl_object {
+        return to_ecl(
+            std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3)));
+    };
+}
+template <typename Fn, typename T1>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<T1>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1) -> cl_object {
+        std::invoke(fn_, to_cpp<T1>(a1));
+        return ECL_NIL;
+    };
+}
+
+template <typename Fn, typename T1, typename T2>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2) -> cl_object {
+        std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2));
+        return ECL_NIL;
+    };
+}
+
+template <typename Fn, typename T1, typename T2, typename T3>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2, cl_object a3) -> cl_object {
+        std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3));
+        return ECL_NIL;
+    };
+}
+
+template <typename Fn>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<>)
+{
+    static const Fn fn_ = fn;
+    return []() -> cl_object {
+        std::invoke(fn_);
+        return ECL_NIL;
+    };
+}
+
+template <typename Fn, typename... Args>
+auto define_function_helper(Fn fn, pack<Args...>)
+{
+    return define_function_helper_impl(
+        fn, pack<std::result_of_t<Fn(Args...)>>{}, pack<Args...>{});
+}
+
+template <typename Fn>
+static void define_function(const std::string& name, Fn fn)
+{
+    using args_t = function_args_t<Fn>;
+    constexpr auto args_size = pack_size_v<args_t>;
+
+    auto func = (cl_objectfn_fixed) + define_function_helper(fn, args_t{});
+    ecl_def_c_function(ecl_read_from_cstring(name.c_str()), func, args_size);
+}
+
 } // namespace eclpp
