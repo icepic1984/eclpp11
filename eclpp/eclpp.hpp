@@ -305,4 +305,109 @@ static void define_function(const std::string& name, Fn fn)
     ecl_def_c_function(ecl_read_from_cstring(name.c_str()), func, args_size);
 }
 
+struct move_sequence
+{
+    move_sequence() = default;
+    move_sequence(const move_sequence&) = delete;
+    move_sequence(move_sequence&& other)
+    {
+        other.moved_from_ = true;
+    };
+
+    bool moved_from_ = false;
+};
+// See
+// https://stackoverflow.com/questions/8610571/what-is-rvalue-reference-for-this
+// why ref qulifer on member functions are needed.
+template <typename Tag, typename T, int Seq = 0>
+struct type_definer : move_sequence
+{
+    using this_t = type_definer;
+    using next_t = type_definer<Tag, T, Seq + 1>;
+
+    std::string m_type_name = {};
+
+    type_definer(type_definer&&) = default;
+
+    type_definer(std::string type_name)
+        : m_type_name(std::move(type_name))
+    {
+    }
+
+    ~type_definer()
+    {
+        if (!moved_from_)
+        {
+            // We don't need this because foreign type must not be
+            // registered before using under ecl. For guile this may
+            // be needed.
+        }
+    }
+
+    template <int Seq2, typename Enable = std::enable_if_t<Seq2 + 1 == Seq>>
+    type_definer(type_definer<Tag, T, Seq2> r)
+        : move_sequence{std::move(r)}
+        , m_type_name{std::move(r.m_type_name)}
+    {
+    }
+
+    /**
+     * Define a Scheme procedure `([type-name])` that returns a Scheme
+     * value holding a default constructed `T` instance.
+     */
+    next_t constructor() &&
+    {
+        define_function(m_type_name, &make_foreign<T>);
+        return {std::move(*this)};
+    }
+
+    /**
+     * Define a Scheme procedure `([type-name] ...)` that returns a
+     * Scheme value holding the result of invoking `fn(args...)`.
+     */
+    template <typename Fn>
+    next_t constructor(Fn fn) &&
+    {
+        define_function(m_type_name, fn);
+        return {std::move(*this)};
+    }
+
+    /**
+     * Define a Scheme procedure `(make-[type-name])` that returns a
+     * Scheme value holding a default constructed `T` instance.
+     */
+    next_t maker() &&
+    {
+        define_function("make-" + m_type_name, &make_foreign<T>);
+        return {std::move(*this)};
+    }
+
+    /**
+     * Define a Scheme procedure `(make-[type-name] ...)` that returns
+     * the result of invoking `fn(...)`.
+     */
+    template <typename Fn>
+    next_t maker(Fn fn) &&
+    {
+        define_function("make-" + m_type_name, fn);
+        return {std::move(*this)};
+    }
+
+    /**
+     * Define a Scheme procedure `([type-name]-[name] ...)` that returns
+     * the result of invoking `fn(...)`.
+     */
+    template <typename Fn>
+    next_t define(std::string name, Fn fn) &&
+    {
+        define_function(m_type_name + "-" + name, fn);
+        return {std::move(*this)};
+    }
+};
+template <typename T, typename Tag = T>
+type_definer<Tag, T> type(std::string type_name)
+{
+    return {type_name};
+}
+
 } // namespace eclpp
