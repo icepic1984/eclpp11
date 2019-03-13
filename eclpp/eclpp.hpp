@@ -65,6 +65,26 @@ double ecl_to_single_float(cl_object v)
     return ecl_single_float(v);
 }
 
+cl_object ecl_make_base_string(std::string str)
+{
+    return ecl_make_simple_base_string(str.c_str(), str.size());
+}
+
+std::string ecl_to_base_string(cl_object obj)
+{
+    cl_index index, length = obj->string.fillp;
+
+    std::string tmp(length, ' ');
+    for (index = 0; index < length; index++)
+    {
+        ecl_character c = obj->string.self[index];
+        if (!ECL_BASE_CHAR_CODE_P(c))
+            FEerror("Cannot coerce string ~A to a base-string", 1, obj);
+        tmp[index] = c;
+    }
+    return tmp;
+}
+
 // Define conversion between ecl and cpp for numerical types
 ECL_DECLARE_NUMERIC_TYPE(std::int8_t, int8_t);
 ECL_DECLARE_NUMERIC_TYPE(std::uint8_t, uint8_t);
@@ -76,6 +96,9 @@ ECL_DECLARE_NUMERIC_TYPE(std::int64_t, int64_t);
 ECL_DECLARE_NUMERIC_TYPE(std::uint64_t, uint64_t);
 ECL_DECLARE_NUMERIC_TYPE(float, single_float);
 ECL_DECLARE_NUMERIC_TYPE(double, double_float);
+
+// Register string type
+ECL_DECLARE_NUMERIC_TYPE(std::string, base_string);
 
 // Helper function to convert from cpp to ecl.
 template <typename T>
