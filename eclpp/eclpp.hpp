@@ -98,6 +98,15 @@ std::string ecl_to_base_string(cl_object obj)
     return tmp;
 }
 
+cl_object ecl_make_constant_string(const char* str)
+{
+    return ecl_make_constant_base_string(str, -1);
+}
+
+char* ecl_to_constant_string(cl_object v)
+{
+    return ecl_base_string_pointer_safe(v);
+}
 // Define conversion between ecl and cpp for numerical types
 ECL_DECLARE_NUMERIC_TYPE(std::int8_t, int8_t);
 ECL_DECLARE_NUMERIC_TYPE(std::uint8_t, uint8_t);
@@ -112,6 +121,7 @@ ECL_DECLARE_NUMERIC_TYPE(double, double_float);
 
 // Register string type
 ECL_DECLARE_NUMERIC_TYPE(std::string, base_string);
+ECL_DECLARE_NUMERIC_TYPE(const char*, constant_string);
 
 // Helper function to convert from cpp to ecl.
 template <typename T>
