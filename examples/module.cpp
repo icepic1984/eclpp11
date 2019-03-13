@@ -43,7 +43,6 @@ public:
         height = h;
     }
 
-private:
     int width;
     int height;
 };
@@ -52,6 +51,7 @@ private:
 extern "C" {
 void init_lib(void)
 {
+
     std::cout << "Initialize library" << std::endl;
     eclpp::type<Image>("image")
         .constructor()
