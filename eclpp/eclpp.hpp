@@ -35,6 +35,19 @@ namespace eclpp
 template <typename T, typename Enable = void>
 struct convert;
 
+template <typename T>
+struct convert<T*>
+{
+    static T* to_cpp(cl_object v)
+    {
+        return reinterpret_cast<T*>(ecl_to_pointer(v));
+    }
+
+    static cl_object to_ecl(T* v)
+    {
+        return ecl_make_pointer(v);
+    }
+};
 // Helper struct definition to convert wrapper between ecl and cpp.
 template <typename T>
 struct convert_wrapper_type
@@ -221,7 +234,7 @@ struct convert_foreign_type
     static cl_object to_ecl(U&& v)
     {
         return make_foreign<T>(std::forward<U>(v));
-    }
+    } // namespace eclpp
     static T& to_cpp(cl_object v)
     {
         return get_foreign<T>(v);
