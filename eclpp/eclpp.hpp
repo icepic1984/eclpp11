@@ -69,13 +69,13 @@ struct convert_wrapper_type
 // lets us use the macro.
 double ecl_to_double_float(cl_object v)
 {
-    return ecl_double_float(v);
+    return ecl_to_double(v);
 }
 
 // See above.
 double ecl_to_single_float(cl_object v)
 {
-    return ecl_single_float(v);
+    return ecl_to_float(v);
 }
 
 cl_object ecl_make_base_string(std::string str)
