@@ -4,6 +4,7 @@
 #include <iostream>
 #include <functional>
 #include <boost/callable_traits/args.hpp>
+#include <type_traits>
 #include "pack.hpp"
 
 namespace eclpp
@@ -253,13 +254,31 @@ struct convert_foreign_type
 
 // Assume that every other type is foreign
 template <typename T>
-struct convert<T, std::enable_if_t<!std::is_fundamental<T>::value &&
+struct convert<T, std::enable_if_t<!std::is_fundamental<T>::value
+                                   && !std::is_enum<T>::value &&
                                    // only value types are supported at
                                    // the moment but the story might
                                    // change later...
                                    !std::is_pointer<T>::value>>
     : convert_foreign_type<T>
 {
+};
+
+// Conversion from enums to underlaying type
+template <typename T>
+struct convert<T, std::enable_if_t<std::is_enum<T>::value>>
+{
+    static cl_object to_ecl(T v)
+    {
+        return convert<std::underlying_type_t<T>>::to_ecl(
+            static_cast<std::underlying_type_t<T>>(v));
+    }
+
+    static T to_cpp(cl_object a)
+    {
+        std::cout << "To cpp" << std::endl;
+        return static_cast<T>(convert<std::underlying_type_t<T>>::to_cpp(a));
+    }
 };
 
 template <typename R, typename Fn>
