@@ -556,4 +556,52 @@ group_definer<Tag> group(std::string group_name)
     return {std::move(group_name)};
 }
 
-} // namespace eclpp
+struct list : wrapper
+{
+    using base_t = wrapper;
+    using base_t::base_t;
+
+    using iterator = list;
+    using value_type = val;
+
+    list()
+        : base_t{ECL_NIL} {};
+    list end() const
+    {
+        return {};
+    }
+    list begin() const
+    {
+        return *this;
+    }
+
+    explicit operator bool()
+    {
+        return m_handle != ECL_NIL;
+    }
+
+    val operator*() const
+    {
+        return val{cl_car(m_handle)};
+    }
+
+    list& operator++()
+    {
+        m_handle = cl_cdr(m_handle);
+        return *this;
+    }
+
+    list operator++(int)
+    {
+        auto result = *this;
+        result.m_handle = cl_cdr(m_handle);
+        return result;
+    }
+};
+
+template <>
+struct convert<list> : convert_wrapper_type<list>
+{
+};
+
+} // Namespace eclpp
