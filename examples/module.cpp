@@ -47,11 +47,26 @@ public:
     int height;
 };
 
+struct Parameter
+{
+    uint32_t x;
+    uint32_t y;
+    double d;
+};
+
+void printParameter(int size, Parameter* parameter)
+{
+    for (int i = 0; i < size; ++i)
+    {
+        std::cout << "x: " << parameter[i].x << " y: " << parameter[i].y
+                  << "d: " << parameter[i].d << std::endl;
+    }
+}
+
 // https://stackoverflow.com/questions/44494613/embeddable-common-lisp-ecl-load-shared-library-with-extension-functionsxo
 extern "C" {
 void init_lib(void)
 {
-
     std::cout << "Initialize library" << std::endl;
     eclpp::type<Image>("image")
         .constructor()
@@ -59,5 +74,6 @@ void init_lib(void)
         .define("set-width", &Image::setWidth)
         .define("get-height", &Image::getHeight)
         .define("set-height", &Image::setHeight);
+    eclpp::group("test").define("printParams", &printParameter);
 }
 }
