@@ -281,14 +281,14 @@ struct convert<T, std::enable_if_t<std::is_enum<T>::value>>
     }
 };
 
-template <typename R, typename Fn>
+template <typename Tag, typename R, typename Fn>
 auto define_function_helper_impl(Fn fn, pack<R>, pack<>)
 {
     static const Fn fn_ = fn;
     return []() -> cl_object { return to_ecl(std::invoke(fn_)); };
 }
 
-template <typename Fn, typename R, typename T1>
+template <typename Tag, typename Fn, typename R, typename T1>
 auto define_function_helper_impl(Fn fn, pack<R>, pack<T1>)
 {
     static const Fn fn_ = fn;
@@ -296,7 +296,7 @@ auto define_function_helper_impl(Fn fn, pack<R>, pack<T1>)
         return to_ecl(std::invoke(fn_, to_cpp<T1>(a1)));
     };
 }
-template <typename Fn, typename R, typename T1, typename T2>
+template <typename Tag, typename Fn, typename R, typename T1, typename T2>
 auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2>)
 {
     static const Fn fn_ = fn;
@@ -304,7 +304,8 @@ auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2>)
         return to_ecl(std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2)));
     };
 }
-template <typename Fn, typename R, typename T1, typename T2, typename T3>
+template <typename Tag, typename Fn, typename R, typename T1, typename T2,
+    typename T3>
 auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2, T3>)
 {
     static const Fn fn_ = fn;
@@ -313,7 +314,7 @@ auto define_function_helper_impl(Fn fn, pack<R>, pack<T1, T2, T3>)
             std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3)));
     };
 }
-template <typename Fn, typename T1>
+template <typename Tag, typename Fn, typename T1>
 auto define_function_helper_impl(Fn fn, pack<void>, pack<T1>)
 {
     static const Fn fn_ = fn;
@@ -323,7 +324,7 @@ auto define_function_helper_impl(Fn fn, pack<void>, pack<T1>)
     };
 }
 
-template <typename Fn, typename T1, typename T2>
+template <typename Tag, typename Fn, typename T1, typename T2>
 auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2>)
 {
     static const Fn fn_ = fn;
@@ -333,7 +334,7 @@ auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2>)
     };
 }
 
-template <typename Fn, typename T1, typename T2, typename T3>
+template <typename Tag, typename Fn, typename T1, typename T2, typename T3>
 auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3>)
 {
     static const Fn fn_ = fn;
@@ -343,7 +344,7 @@ auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3>)
     };
 }
 
-template <typename Fn>
+template <typename Tag, typename Fn>
 auto define_function_helper_impl(Fn fn, pack<void>, pack<>)
 {
     static const Fn fn_ = fn;
@@ -353,20 +354,20 @@ auto define_function_helper_impl(Fn fn, pack<void>, pack<>)
     };
 }
 
-template <typename Fn, typename... Args>
+template <typename Tag, typename Fn, typename... Args>
 auto define_function_helper(Fn fn, pack<Args...>)
 {
-    return define_function_helper_impl(
+    return define_function_helper_impl<Tag>(
         fn, pack<std::result_of_t<Fn(Args...)>>{}, pack<Args...>{});
 }
 
-template <typename Fn>
+template <typename Tag, typename Fn>
 static void define_function(const std::string& name, Fn fn)
 {
     using args_t = function_args_t<Fn>;
     constexpr auto args_size = pack_size_v<args_t>;
 
-    auto func = (cl_objectfn_fixed) + define_function_helper(fn, args_t{});
+    auto func = (cl_objectfn_fixed) + define_function_helper<Tag>(fn, args_t{});
     ecl_def_c_function(ecl_read_from_cstring(name.c_str()), func, args_size);
 }
 
@@ -424,7 +425,7 @@ struct type_definer : move_sequence
      */
     next_t constructor() &&
     {
-        define_function(m_type_name, &make_foreign<T>);
+        define_function<this_t>(m_type_name, &make_foreign<T>);
         return {std::move(*this)};
     }
 
@@ -435,7 +436,7 @@ struct type_definer : move_sequence
     template <typename Fn>
     next_t constructor(Fn fn) &&
     {
-        define_function(m_type_name, fn);
+        define_function<this_t>(m_type_name, fn);
         return {std::move(*this)};
     }
 
@@ -445,7 +446,7 @@ struct type_definer : move_sequence
      */
     next_t maker() &&
     {
-        define_function("make-" + m_type_name, &make_foreign<T>);
+        define_function<this_t>("make-" + m_type_name, &make_foreign<T>);
         return {std::move(*this)};
     }
 
@@ -456,7 +457,7 @@ struct type_definer : move_sequence
     template <typename Fn>
     next_t maker(Fn fn) &&
     {
-        define_function("make-" + m_type_name, fn);
+        define_function<this_t>("make-" + m_type_name, fn);
         return {std::move(*this)};
     }
 
@@ -467,7 +468,7 @@ struct type_definer : move_sequence
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
-        define_function(m_type_name + "-" + name, fn);
+        define_function<this_t>(m_type_name + "-" + name, fn);
         return {std::move(*this)};
     }
 };
@@ -498,7 +499,7 @@ struct definer
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
-        define_function(name, fn);
+        define_function<this_t>(name, fn);
         return {std::move(*this)};
     }
 };
@@ -531,7 +532,7 @@ struct group_definer
     template <typename Fn>
     next_t define(std::string name, Fn fn) &&
     {
-        define_function(group_name_ + "-" + name, fn);
+        define_function<this_t>(group_name_ + "-" + name, fn);
         return {std::move(*this)};
     }
 };
