@@ -344,6 +344,32 @@ auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3>)
     };
 }
 
+template <typename Tag, typename Fn, typename T1, typename T2, typename T3,
+    typename T4>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3, T4>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2, cl_object a3,
+               cl_object a4) -> cl_object {
+        std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3),
+            to_cpp<T4>(a4));
+        return ECL_NIL;
+    };
+}
+
+template <typename Tag, typename Fn, typename T1, typename T2, typename T3,
+    typename T4, typename T5>
+auto define_function_helper_impl(Fn fn, pack<void>, pack<T1, T2, T3, T4, T5>)
+{
+    static const Fn fn_ = fn;
+    return [](cl_object a1, cl_object a2, cl_object a3, cl_object a4,
+               cl_object a5) -> cl_object {
+        std::invoke(fn_, to_cpp<T1>(a1), to_cpp<T2>(a2), to_cpp<T3>(a3),
+            to_cpp<T4>(a4), to_cpp<T5>(a5));
+        return ECL_NIL;
+    };
+}
+
 template <typename Tag, typename Fn>
 auto define_function_helper_impl(Fn fn, pack<void>, pack<>)
 {
