@@ -61,7 +61,6 @@
 
 (defun initialize-struct-array (xi yi di struct size)
   (dotimes (i size)
-    (print i)
     (setf (ffi:get-slot-value (deref struct 'custom-struct i) 'custom-struct :x)xi)
     (setf (ffi:get-slot-value (deref struct 'custom-struct i) 'custom-struct :y)yi)
     (setf (ffi:get-slot-value (deref struct 'custom-struct i) 'custom-struct :d)di))) 
@@ -77,6 +76,9 @@
 (initialize-struct-array 100 200 300 *struct* 10)
 (struct-array-to-list *struct* 10)
 
-(test-printparams 10 *struct*)
+(test-print-paramater 10 *struct*)
+(test-initialize-parameter 10 *struct* 1 2 3.0)
+
+
 
 

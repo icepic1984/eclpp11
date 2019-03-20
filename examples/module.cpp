@@ -54,7 +54,17 @@ struct Parameter
     double d;
 };
 
-void printParameter(int size, Parameter* parameter)
+void initializeParameter(int size, Parameter* parameter, int x, int y, double d)
+{
+    for (int i = 0; i < size; ++i)
+    {
+        parameter[i].x = x;
+        parameter[i].y = y;
+        parameter[i].d = d;
+    }
+}
+
+void printParameter(int size, const Parameter* parameter)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -74,6 +84,8 @@ void init_lib(void)
         .define("set-width", &Image::setWidth)
         .define("get-height", &Image::getHeight)
         .define("set-height", &Image::setHeight);
-    eclpp::group("test").define("printParams", &printParameter);
+    eclpp::group("test")
+        .define("initialize-parameter", &initializeParameter)
+        .define("print-paramater", &printParameter);
 }
 }
