@@ -25,7 +25,7 @@ configure_file(
   @ONLY)
 
 # Finally we replave the generator expresssion with the full path to the so/dll.
-file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/module.lisp" INPUT "${CMAKE_CURRENT_BINARY_DIR}/module.lisp")
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/module.lisp" INPUT "${CMAKE_CURRENT_BINARY_DIR}/module.lisp.out")
 
 # We define a custom command which will compile our module.lisp. The
 # custom command depends on the module target
