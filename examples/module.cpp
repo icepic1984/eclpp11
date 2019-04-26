@@ -73,6 +73,11 @@ void printParameter(int size, const Parameter* parameter)
     }
 }
 
+void execute(void (*callback)(int), int i)
+{
+    callback(i);
+}
+
 // https://stackoverflow.com/questions/44494613/embeddable-common-lisp-ecl-load-shared-library-with-extension-functionsxo
 extern "C" {
 void init_lib(void)
@@ -86,6 +91,13 @@ void init_lib(void)
         .define("set-height", &Image::setHeight);
     eclpp::group("test")
         .define("initialize-parameter", &initializeParameter)
-        .define("print-paramater", &printParameter);
+        .define("print-paramater", &printParameter)
+        .define("execute", &execute);
+}
+
+int executeCallback(int32_t (*callback)(int32_t), int32_t i)
+{
+    std::cout << "Calling callback" << std::endl;
+    return callback(i);
 }
 }

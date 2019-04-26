@@ -1,4 +1,5 @@
 (load "/home/icepic/Code/build_eclp/examples/module.fas")
+(load "module.fas")
 
 (defparameter *img* (image))
 (image-set-height *img* 10000)
@@ -78,6 +79,12 @@
 
 (test-print-paramater 10 *struct*)
 (test-initialize-parameter 10 *struct* 1 2 3.0)
+
+
+;; Test callback
+(ffi:callback 'callback)
+(executeCallback  (ffi:callback 'callback) 10)
+
 
 
 

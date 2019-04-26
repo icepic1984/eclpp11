@@ -1,6 +1,7 @@
 (ffi:load-foreign-library "@FFI_LIBRARY@")
 (ffi:def-function ("init_lib" init) NIL :returning :void)
-
-(init)    
-
-
+(ffi:def-function ("executeCallback" executeCallback) ((callback :pointer-void) (i :int32-t)) :returning :int32-t)
+(ffi:defcallback callback :int32-t ((i :int32-t))
+  (format t "Hello")
+  (+ i i ))
+(init)
