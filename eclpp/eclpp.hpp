@@ -63,6 +63,21 @@ struct convert_wrapper_type
     }
 };
 
+template <>
+struct convert<std::string>
+{
+    static cl_object to_ecl(const std::string& str)
+    {
+        return make_base_string_copy(str.c_str());
+    }
+
+    static std::string to_cpp(cl_object v)
+    {
+        v = si_coerce_to_base_string(v);
+        return std::string((const char*)v->base_string.self);
+    }
+};
+
 // Helper function to convert ecl's double float to double. This is
 // needed because we want to tuse the `ECL_DECLARE_NUMERIC_TYPE` macro
 // to generate the conversion struct. Ecl is missing a function with
@@ -121,8 +136,8 @@ ECL_DECLARE_NUMERIC_TYPE(float, single_float);
 ECL_DECLARE_NUMERIC_TYPE(double, double_float);
 
 // Register string type
-ECL_DECLARE_NUMERIC_TYPE(std::string, base_string);
-ECL_DECLARE_NUMERIC_TYPE(const char*, constant_string);
+// ECL_DECLARE_NUMERIC_TYPE(std::string, base_string);
+// ECL_DECLARE_NUMERIC_TYPE(const char*, constant_string);
 
 // Helper function to convert from cpp to ecl.
 template <typename T>
