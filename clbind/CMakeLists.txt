@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(clbind VERSION 0.1 LANGUAGES CXX)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
+
+find_package(Ecl REQUIRED)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -9,7 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(clbind INTERFACE)
 target_sources(clbind INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include/clbind/type_conversion.hpp")
 target_include_directories(clbind INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include")
-
+target_link_libraries(clbind INTERFACE Ecl::Ecl)
 add_library(clbind::clbind ALIAS clbind)
 
 add_executable(type_conversion "examples/type_conversion.cpp")
