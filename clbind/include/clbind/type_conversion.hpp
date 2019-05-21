@@ -4,6 +4,8 @@
 #include <string>
 #include <typeindex>
 #include <ecl/ecl.h>
+#include <functional>
+
 namespace clbind
 {
 class class_registry
@@ -460,4 +462,67 @@ auto to_cpp(cl_object v) -> decltype(convert<std::decay_t<T>>::to_cpp(v))
 {
     return convert<std::decay_t<T>>::to_cpp(v);
 }
+
+template <typename R, typename... Args>
+struct ReturnTypeAdapter
+{
+    using return_type = R;
+    return_type operator()(const void* functor, Args... args)
+    {
+        auto std_func =
+            reinterpret_cast<const std::function<R(Args...)>*>(functor);
+
+        return ((*std_func)(args...));
+    }
+};
+
+template <typename... Args>
+struct ReturnTypeAdapter<void, Args...>
+{
+    void operator()(const void* functor, Args... args)
+    {
+        auto std_func =
+            reinterpret_cast<const std::function<void(Args...)>*>(functor);
+        ((*std_func)(args...));
+    }
+};
+
+template <typename R, typename... Args>
+struct CallFunctor
+{
+    using return_type = decltype(ReturnTypeAdapter<R, Args...>()(
+        std::declval<const void*>(), std::declval<Args>()...));
+
+    static return_type apply(const void* functor, Args... args)
+    {
+        return ReturnTypeAdapter<R, Args...>()(functor, args...);
+    }
+};
+
+template <typename R, typename... Args>
+class FunctionWrapper
+{
+public:
+    typedef std::function<R(Args...)> functor_t;
+
+    explicit FunctionWrapper(const functor_t& f)
+    {
+        p_function = f;
+    }
+
+    const void* ptr()
+    {
+        return reinterpret_cast<const void*>(&p_function);
+    }
+
+private:
+    functor_t p_function;
+};
+
+template <typename R, typename... Args>
+auto createFunctor(std::function<R(Args...)> f)
+{
+    return reinterpret_cast<const void*>(CallFunctor<R, Args...>::apply);
+}
+
 } // namespace clbind

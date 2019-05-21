@@ -22,6 +22,10 @@ struct member
     }
 };
 
+int test_func(int a, int b)
+{
+    return a + b;
+}
 int main(int argc, char** args)
 {
     cl_boot(argc, args);
@@ -84,6 +88,20 @@ int main(int argc, char** args)
     clbind::to_ecl(&ecl_struct);
     clbind::to_ecl(Ecl_A{});
     clbind::to_ecl(ecl_ref);
+
+    auto thunc_ptr = clbind::createFunctor(std::function(&test_func));
+
+    std::function w(&test_func);
+    clbind::FunctionWrapper wrapper(w);
+
+    auto func_ptr = wrapper.ptr();
+
+    typedef int (*fptr)(const void*, int, int);
+    fptr my_fptr = reinterpret_cast<fptr>(thunc_ptr);
+    std::cout << my_fptr(func_ptr, 10, 10) << std::endl;
+
+    // auto thunc = reinterpret_cast<const void*>(
+    //     clbind::CallFunctor<int, int, int>::apply);
 
     // lisp
     // (a 10 20)
