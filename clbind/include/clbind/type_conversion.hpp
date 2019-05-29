@@ -4,6 +4,7 @@
 #include <string>
 #include <typeindex>
 #include <ecl/ecl.h>
+#include <ecl/internal.h>
 #include <functional>
 
 namespace clbind
@@ -524,5 +525,86 @@ auto createFunctor(std::function<R(Args...)> f)
 {
     return reinterpret_cast<const void*>(CallFunctor<R, Args...>::apply);
 }
+
+typedef cl_object cl_arglist;
+
+typedef cl_object (*callback_t)(void* f, cl_arglist);
+
+cl_object callback_function(cl_narg narg, ...)
+{
+    std::cout << "callback_func" << std::endl;
+    cl_env_ptr the_env = ecl_process_env();
+    cl_object output;
+    ECL_STACK_FRAME_VARARGS_BEGIN(narg, narg, frame);
+    {
+        cl_object closure = the_env->function;
+        cl_object closure_env = closure->cclosure.env;
+        {
+            cl_object env = closure_env;
+            callback_t wrapper = (callback_t)ECL_CONS_CAR(closure_env);
+            void* f = (void*)ECL_CONS_CDR(closure_env);
+            output = wrapper(f, frame);
+        }
+    }
+    ECL_STACK_FRAME_VARARGS_END(frame);
+    return output;
+}
+
+cl_object test_closure(cl_narg narg, ...)
+{
+    std::cout << narg << std::endl;
+    std::cout << "callback_func" << std::endl;
+    return ECL_NIL;
+}
+
+cl_object symbol(const char* package, const char* name)
+{
+    cl_object p = ecl_find_package(package);
+    return _ecl_intern(name, p);
+}
+
+cl_object symbol(const char* name)
+{
+    cl_object output = ecl_read_from_cstring_safe(name, ECL_NIL);
+
+    if (output == ECL_NIL || type_of(output) != t_symbol)
+    {
+        std::cerr << "Then string \"" << name
+                  << "\" does not name a "
+                     "valid Common Lisp symbol.\n";
+        abort();
+    }
+    return output;
+}
+void define_function(cl_object symbol, callback_t callback, void* f)
+{
+    std::cout << "define function " << std::endl;
+    cl_object env = ecl_cons((cl_object)callback, (cl_object)f);
+    std::cout << "cons" << std::endl;
+    // cl_object fn = ecl_make_cclosure_va(callback_function, env, ECL_NIL);
+    cl_object fn = ecl_make_cclosure_va(test_closure, ECL_NIL, ECL_NIL);
+    std::cout << "make closure" << std::endl;
+    si_fset(2, symbol, fn);
+    // cl_set(symbol, ecl_make_int32_t(0));
+}
+
+void define_function(const char* name, callback_t callback, void* f)
+{
+    std::cout << "define function" << std::endl;
+    define_function(symbol(name), callback, f);
+}
+
+// template <typename F>
+// void defun(const char* symbol_name, F f)
+// {
+//     struct Foo
+//     {
+//         static cl_object callback(void* f, cl_arglist arglist)
+//         {
+//             return reinterpret_cast<F>(f), arglist);
+//         }
+//     };
+//     define_function(symbol_name, Foo::callback, (void*)f);
+// }
 
 } // namespace clbind
