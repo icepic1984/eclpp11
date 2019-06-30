@@ -25,8 +25,8 @@ target_include_directories(clbind INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(clbind INTERFACE Ecl::Ecl)
 add_library(clbind::clbind ALIAS clbind)
 
-add_executable(package "examples/test_package.cpp")
-target_link_libraries(package clbind::clbind)
+add_library(testPackage SHARED "examples/test_package.cpp")
+target_link_libraries(testPackage clbind::clbind)
 
 
 

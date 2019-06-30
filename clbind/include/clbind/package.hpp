@@ -47,12 +47,35 @@ public:
         return *m_registry[name];
     }
 
+    static Registry& registry()
+    {
+        static Registry m_registry;
+        return m_registry;
+    }
+
 private:
+    Registry() = default;
+
+    Registry(const Registry&) = delete;
+
+    Registry operator=(const Registry) = delete;
+
     std::unordered_map<std::string, std::shared_ptr<Package>> m_registry;
 };
 
 } // namespace clbind
 
 extern "C" {
-bool registerPackage(const char* name, void (*RegFunc)(clbind::Package&));
+bool registerPackage(const char* name, void (*regFunc)(clbind::Package&))
+{
+    auto package = clbind::Registry::registry().createPackage(name);
+    regFunc(package);
+    return true;
 }
+int add2(int a, int b)
+{
+    return a + b;
+}
+}
+
+#define CLBIND_PACKAGE extern "C" void
