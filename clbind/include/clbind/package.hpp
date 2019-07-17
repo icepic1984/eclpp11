@@ -20,6 +20,12 @@ public:
         std::cout << "Name of fun: " << name << std::endl;
     }
 
+    template <typename R, typename... Args>
+    void defun(const std::string& name, R (*f)(Args...))
+    {
+        defun(name, std::function<R(Args...)>(f));
+    }
+
     template <typename LambdaT>
     void defun(const std::string& name, LambdaT&& lambda)
     {
@@ -31,6 +37,7 @@ private:
     void addLambda(const std::string& name, LambdaT&& lambda,
         R (LambdaT::*)(ArgsT...) const)
     {
+        std::cout << "lambda" << std::endl;
         return defun(
             name, std::function<R(ArgsT...)>(std::forward<LambdaT>(lambda)));
     }

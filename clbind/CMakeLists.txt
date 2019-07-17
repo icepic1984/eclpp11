@@ -28,6 +28,9 @@ add_library(clbind::clbind ALIAS clbind)
 add_library(testPackage SHARED "examples/test_package.cpp")
 target_link_libraries(testPackage clbind::clbind)
 
+add_executable(package "examples/test_package.cpp")
+target_link_libraries(package clbind::clbind)
+
 
 
 
