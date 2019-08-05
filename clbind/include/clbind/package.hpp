@@ -6,8 +6,72 @@
 #include <functional>
 #include <tuple>
 
+#include <ecl/ecl.h>
+
 namespace clbind
 {
+
+namespace detail
+{
+template <typename T, typename Enable = void>
+struct Convert;
+
+template <>
+struct Convert<int>
+{
+    static int toCpp(cl_object v)
+    {
+        return ecl_to_int(v);
+    }
+
+    static cl_object toEcl(int v)
+    {
+        return ecl_make_int(v);
+    }
+};
+
+template <>
+struct Convert<float>
+{
+    static float toCpp(cl_object v)
+    {
+        return ecl_to_float(v);
+    }
+
+    static cl_object toEcl(float v)
+    {
+        return ecl_make_single_float(v);
+    }
+};
+
+template <>
+struct Convert<double>
+{
+    static double toCpp(cl_object v)
+    {
+        return ecl_to_double(v);
+    }
+
+    static cl_object toEcl(double v)
+    {
+        return ecl_make_double_float(v);
+    }
+};
+
+} // namespace detail
+
+template <typename T>
+decltype(auto) toCpp(cl_object v)
+{
+    return clbind::detail::Convert<std::decay_t<T>>::toCpp(v);
+}
+
+template <typename T>
+decltype(auto) toEcl(T&& v)
+{
+    return clbind::detail::Convert<std::decay_t<decltype(v)>>::toEcl(
+        std::forward<T>(v));
+}
 
 // https://github.com/Nelarius/wrenpp/blob/master/Wren%2B%2B.h
 // http://stackoverflow.com/questions/17339789/how-to-call-a-function-on-all-variadic-template-args
