@@ -4,9 +4,36 @@
 #include <iostream>
 #include <memory>
 #include <functional>
+#include <tuple>
 
 namespace clbind
 {
+
+// https://github.com/Nelarius/wrenpp/blob/master/Wren%2B%2B.h
+// http://stackoverflow.com/questions/17339789/how-to-call-a-function-on-all-variadic-template-args
+// http://anthony.noided.media/blog/programming/c++/ruby/2016/05/12/mruby-cpp-and-template-magic.html
+
+template <typename F>
+struct FunctionTraits;
+
+template <typename R, typename... Args>
+struct FunctionTraits<R(Args...)>
+{
+    using ReturnType = R;
+
+    constexpr static const std::size_t Arity = sizeof...(Args);
+
+    template <std::size_t N>
+    struct Argument
+    {
+        static_assert(N < Arity,
+            "FunctionTraits error: invalid argument index parameter");
+        using Type = std::tuple_element_t<N, std::tuple<Args...>>;
+    };
+
+    template <std::size_t N>
+    using ArgumentType = typename Argument<N>::Type;
+};
 
 class Package
 {
