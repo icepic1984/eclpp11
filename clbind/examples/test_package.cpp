@@ -48,6 +48,15 @@ int main(int argc, char** args)
     int ref = 3;
     const int& ref3 = ref;
     auto sdf = clbind::toEcl(5);
+    auto env = ecl_process_env();
+    struct ecl_stack_frame frame;
+    ecl_stack_frame_open(env, (cl_object)&frame, 2);
+
+    ecl_stack_frame_push((cl_object)&frame, clbind::toEcl(5));
+    ecl_stack_frame_push((cl_object)&frame, clbind::toEcl(10));
+    ecl_stack_frame_close((cl_object)&frame);
+
+    std::cout << (t_frame == ecl_t_of((cl_object)&frame)) << std::endl;
 
     std::cout << clbind::toCpp<int>(sdf);
 }
