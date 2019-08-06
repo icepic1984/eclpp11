@@ -1,4 +1,5 @@
 #include <clbind/package.hpp>
+#include <ecl/internal.h>
 #include <type_traits>
 
 CLBIND_PACKAGE test(clbind::Package& package)
@@ -20,6 +21,40 @@ int j(int a, double b)
 {
 }
 
+/** Object to use for returning multiple values. */
+struct return_stack
+{
+    /** The type of value that a C function must return. */
+    /** The creator with no values. */
+    return_stack()
+        : env(ecl_process_env())
+    {
+        env->nvalues = 0;
+        env->values[0] = ECL_NIL;
+    }
+    /** A function to add one value at a time. */
+    return_stack& operator<<(cl_object o)
+    {
+        env->values[env->nvalues++] = o;
+        return *this;
+    }
+    /** A function to finally return all the values that were grouped. */
+    cl_object return_value()
+    {
+        return env->values[0];
+    }
+
+private:
+    /* Copy constructors are hidden and forbidden. */
+    return_stack(const return_stack& s);
+    const return_stack& operator=(const return_stack& s);
+    const cl_env_ptr env;
+};
+
+int cool(int a)
+{
+    return ++a;
+}
 void va(cl_narg narg, ...)
 {
 
@@ -58,18 +93,24 @@ int main(int argc, char** args)
     auto blup2 = clbind::detail::Convert<double>::toEcl(10.01234);
     std::cout << clbind::detail::Convert<double>::toCpp(blup2) << std::endl;
 
-    int ref = 3;
-    const int& ref3 = ref;
-    auto sdf = clbind::toEcl(5);
+    va(2, clbind::toEcl(10), clbind::toEcl(20));
+
+    // auto b = cl_cons(clbind::toEcl(5), ECL_NIL);
+    // std::cout << ecl_t_of(b) << std::endl;
+
+    // auto b1 = clbind::nth_arg(b, 1);
+    // std::cout << ecl_t_of(b1) << std::endl;
+
+    // Setup stack
     auto env = ecl_process_env();
     struct ecl_stack_frame frame;
-    ecl_stack_frame_open(env, (cl_object)&frame, 2);
+    auto name = ecl_stack_frame_open(env, (cl_object)&frame, 0);
+    ecl_stack_frame_push(name, clbind::toEcl(5));
+    //    ecl_stack_frame_push(name, clbind::toEcl(6));
+    ecl_stack_frame_close(name);
 
-    ecl_stack_frame_push((cl_object)&frame, clbind::toEcl(5));
-    ecl_stack_frame_push((cl_object)&frame, clbind::toEcl(10));
-    ecl_stack_frame_close((cl_object)&frame);
-
-    std::cout << (t_frame == ecl_t_of((cl_object)&frame)) << std::endl;
-
-    std::cout << clbind::toCpp<int>(sdf);
+    // Use stack
+    std::cout << clbind::toCpp<int>(clbind::nth_arg(name, 1)) << std::endl;
+    auto b = clbind::wrap(cool, name);
+    std::cout << clbind::toCpp<int>(b) << std::endl;
 }
