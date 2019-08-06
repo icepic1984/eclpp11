@@ -75,13 +75,13 @@ decltype(auto) toEcl(T&& v)
 
 cl_object nth_arg(cl_object arglist, int i)
 {
-    if (i > arglist->frame.size)
+    if (i >= arglist->frame.size)
     {
         std::cerr << "Missing argument #" << i
                   << " in a CL-CXX wrapped function.\n";
         abort();
     }
-    return ((cl_object*)arglist->frame.base)[i - 1];
+    return ((cl_object*)arglist->frame.base)[i];
 }
 
 /** Object to use for returning multiple values. */
@@ -119,13 +119,28 @@ cl_object wrap(Ret F(T1 a1), cl_object a)
 {
 
     auto eclObject = nth_arg(a, 1);
-    std::cout << "ja" << ecl_t_of(eclObject) << std::endl;
     auto b1 = toCpp<T1>(eclObject);
-
-    return_stack s;
-    s << toEcl(F(b1));
-    return (s << eclObject).return_value();
+    return toEcl(F(b1));
 }
+
+template <typename Ret, typename... Args, std::size_t... Index>
+cl_object wrapImpl(
+    Ret func(Args...), std::index_sequence<Index...>, cl_object frame)
+{
+    std::tuple<Args...> t;
+    ((std::get<Index>(t) =
+             toCpp<typename std::tuple_element<Index, decltype(t)>::type>(
+                 nth_arg(frame, Index))),
+        ...);
+    return toEcl(std::apply(func, t));
+}
+
+template <typename Ret, typename... Args>
+cl_object wrap(Ret func(Args...), cl_object frame)
+{
+    return wrapImpl(func, std::index_sequence_for<Args...>{}, frame);
+}
+
 // https://github.com/Nelarius/wrenpp/blob/master/Wren%2B%2B.h
 // http://stackoverflow.com/questions/17339789/how-to-call-a-function-on-all-variadic-template-args
 // http://anthony.noided.media/blog/programming/c++/ruby/2016/05/12/mruby-cpp-and-template-magic.html

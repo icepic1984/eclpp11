@@ -55,6 +55,11 @@ int cool(int a)
 {
     return ++a;
 }
+
+int cool2(int a, int b, int c)
+{
+    return a + b + c;
+}
 void va(cl_narg narg, ...)
 {
 
@@ -93,7 +98,7 @@ int main(int argc, char** args)
     auto blup2 = clbind::detail::Convert<double>::toEcl(10.01234);
     std::cout << clbind::detail::Convert<double>::toCpp(blup2) << std::endl;
 
-    va(2, clbind::toEcl(10), clbind::toEcl(20));
+    //   va(2, clbind::toEcl(10), clbind::toEcl(20));
 
     // auto b = cl_cons(clbind::toEcl(5), ECL_NIL);
     // std::cout << ecl_t_of(b) << std::endl;
@@ -106,11 +111,15 @@ int main(int argc, char** args)
     struct ecl_stack_frame frame;
     auto name = ecl_stack_frame_open(env, (cl_object)&frame, 0);
     ecl_stack_frame_push(name, clbind::toEcl(5));
-    //    ecl_stack_frame_push(name, clbind::toEcl(6));
+    ecl_stack_frame_push(name, clbind::toEcl(6));
+    ecl_stack_frame_push(name, clbind::toEcl(7));
     ecl_stack_frame_close(name);
 
-    // Use stack
-    std::cout << clbind::toCpp<int>(clbind::nth_arg(name, 1)) << std::endl;
-    auto b = clbind::wrap(cool, name);
+    auto b = clbind::wrap(cool2, name);
     std::cout << clbind::toCpp<int>(b) << std::endl;
+
+    // Use stack
+    // std::cout << clbind::toCpp<int>(clbind::nth_arg(name, 1)) << std::endl;
+    // auto b = clbind::wrap(cool, name);
+    // std::cout << clbind::toCpp<int>(b) << std::endl;
 }
