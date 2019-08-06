@@ -20,6 +20,19 @@ int j(int a, double b)
 {
 }
 
+void va(cl_narg narg, ...)
+{
+
+    ECL_STACK_FRAME_VARARGS_BEGIN(narg, narg, frame);
+    {
+        std::cout << ecl_t_of(clbind::nth_arg(frame, 2)) << std::endl;
+        std::cout << ecl_t_of(clbind::nth_arg(frame, 1)) << std::endl;
+        std::cout << clbind::toCpp<int>(clbind::nth_arg(frame, 1)) << std::endl;
+        std::cout << clbind::toCpp<int>(clbind::nth_arg(frame, 2)) << std::endl;
+    }
+    ECL_STACK_FRAME_VARARGS_END(frame);
+}
+
 int main(int argc, char** args)
 {
     cl_boot(argc, args);
