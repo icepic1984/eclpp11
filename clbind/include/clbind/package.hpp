@@ -73,6 +73,59 @@ decltype(auto) toEcl(T&& v)
         std::forward<T>(v));
 }
 
+cl_object nth_arg(cl_object arglist, int i)
+{
+    if (i > arglist->frame.size)
+    {
+        std::cerr << "Missing argument #" << i
+                  << " in a CL-CXX wrapped function.\n";
+        abort();
+    }
+    return ((cl_object*)arglist->frame.base)[i - 1];
+}
+
+/** Object to use for returning multiple values. */
+struct return_stack
+{
+    /** The type of value that a C function must return. */
+    /** The creator with no values. */
+    return_stack()
+        : env(ecl_process_env())
+    {
+        env->nvalues = 0;
+        env->values[0] = ECL_NIL;
+    }
+    /** A function to add one value at a time. */
+    return_stack& operator<<(cl_object o)
+    {
+        env->values[env->nvalues++] = o;
+        return *this;
+    }
+    /** A function to finally return all the values that were grouped. */
+    cl_object return_value()
+    {
+        return env->values[0];
+    }
+
+private:
+    /* Copy constructors are hidden and forbidden. */
+    return_stack(const return_stack& s);
+    const return_stack& operator=(const return_stack& s);
+    const cl_env_ptr env;
+};
+
+template <class Ret, class T1>
+cl_object wrap(Ret F(T1 a1), cl_object a)
+{
+
+    auto eclObject = nth_arg(a, 1);
+    std::cout << "ja" << ecl_t_of(eclObject) << std::endl;
+    auto b1 = toCpp<T1>(eclObject);
+
+    return_stack s;
+    s << toEcl(F(b1));
+    return (s << eclObject).return_value();
+}
 // https://github.com/Nelarius/wrenpp/blob/master/Wren%2B%2B.h
 // http://stackoverflow.com/questions/17339789/how-to-call-a-function-on-all-variadic-template-args
 // http://anthony.noided.media/blog/programming/c++/ruby/2016/05/12/mruby-cpp-and-template-magic.html
