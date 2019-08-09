@@ -101,8 +101,8 @@ struct ft_member
     int c;
 };
 
-template <typename F>
-using function_args_t = boost::callable_traits::args_t<F, std::tuple>;
+// template <typename F>
+// using function_args_t = boost::callable_traits::args_t<F, std::tuple>;
 
 template <typename F>
 using function_traits_t = typename clbind::function_traits<F>::args;
@@ -154,8 +154,8 @@ cl_object wrap2(F&& func, cl_object frame)
 template <typename F>
 int ft(F&& f)
 {
-    static_assert(std::is_same_v<std::tuple_element_t<0, function_args_t<F>>,
-        std::add_lvalue_reference_t<ft_member>>);
+    // static_assert(std::is_same_v<std::tuple_element_t<0, function_args_t<F>>,
+    //     std::add_lvalue_reference_t<ft_member>>);
 
     static_assert(std::is_same_v<std::tuple_element_t<0, function_traits_t<F>>,
         std::add_lvalue_reference_t<ft_member>>);
