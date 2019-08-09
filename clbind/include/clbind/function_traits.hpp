@@ -10,17 +10,9 @@ struct dependent_false : std::false_type
 template <class F>
 struct function_traits;
 
-// function pointer
-template <class R, class... Args>
-struct function_traits<R (*)(Args...)> : public function_traits<R(Args...)>
-{
-    // static_assert(dependent_false<R (*)(Args...)>(), "function pointer");
-};
-
 template <class R, class... Args>
 struct function_traits<R(Args...)>
 {
-    // static_assert(dependent_false<R(Args...)>(), "function template");
     using return_type = R;
 
     static constexpr std::size_t size = sizeof...(Args);
@@ -28,67 +20,153 @@ struct function_traits<R(Args...)>
     using args = std::tuple<Args...>;
 };
 
-// member function pointer
+template <class R, class... Args>
+struct function_traits<R (*)(Args...)> : public function_traits<R(Args...)>
+{
+};
+
+template <class R, class... Args>
+struct function_traits<R(Args...) const&&> : public function_traits<R(Args...)>
+{
+};
+
 template <class C, class R, class... Args>
 struct function_traits<R (C::*)(Args...)>
     : public function_traits<R(C&, Args...)>
 {
-    // static_assert(
-    //     dependent_false<R (C::*)(Args...)>(), "member function pointer");
 };
 
-// const member function pointer
 template <class C, class R, class... Args>
 struct function_traits<R (C::*)(Args...) const>
-    : public function_traits<R(C&, Args...)>
+    : public function_traits<R(const C&, Args...)>
 {
-    // static_assert(dependent_false<R (C::*)(Args...) const>(),
-    //     "const member function pointer");
 };
 
-// member object pointer
+template <class C, class R, class... Args>
+struct function_traits<R (C::*)(Args...) &&>
+    : public function_traits<R(C&&, Args...)>
+{
+};
+
+template <class C, class R, class... Args>
+struct function_traits<R (C::*const&)(Args...)>
+    : public function_traits<R(C&, Args...)>
+{
+};
+
 template <class C, class R>
 struct function_traits<R(C::*)> : public function_traits<R(C&)>
 {
-    // static_assert(dependent_false<R(C::*)>(), "member object pointer");
 };
 
 template <typename F>
 struct function_traits : public function_traits<decltype(&F::operator())>
 {
-    // static_assert(dependent_false<F>(), "operator");
 };
-// functor
-// template <class F>
-// struct function_traits
-// {
-//     // static_assert(dependent_false<F>(), "operator");
-
-// private:
-//     using call_type = function_traits<decltype(&F::operator())>;
-
-// public:
-//     using return_type = typename call_type::return_type;
-
-//     static constexpr std::size_t arity = call_type::arity - 1;
-
-//     template <std::size_t N>
-//     struct argument
-//     {
-//         static_assert(N < arity, "error: invalid parameter index.");
-//         using type = typename call_type::template argument<N + 1>::type;
-//     };
-// };
 
 template <class F>
 struct function_traits<F&> : public function_traits<F>
 {
-    //  static_assert(dependent_false<F>(), "F& function template");
 };
 
 template <class F>
 struct function_traits<F&&> : public function_traits<F>
 {
-    //   static_assert(dependent_false<F>(), "F&& function template");
 };
+
+// Unit tests
+namespace detail
+{
+
+// function template
+static_assert(
+    std::is_same_v<clbind::function_traits<void(float, char, int)>::args,
+        std::tuple<float, char, int>>,
+    "template function argument type mismatch");
+
+static_assert(
+    std::is_same_v<clbind::function_traits<void()>::args, std::tuple<>>,
+    "template function argument type mismatch");
+
+static_assert(
+    std::is_same_v<clbind::function_traits<void(float, char, int)>::return_type,
+        void>,
+    "template function return type mismatch");
+
+// function pointer
+static_assert(
+    std::is_same_v<clbind::function_traits<void (*)(float, char, int)>::args,
+        std::tuple<float, char, int>>,
+    "function pointer argument type mismatch");
+
+static_assert(
+    std::is_same_v<clbind::function_traits<void (*)()>::args, std::tuple<>>,
+    "function pointer argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (*)(float, char, int)>::return_type, void>,
+    "template function return type mismatch");
+
+// function reference
+static_assert(
+    std::is_same_v<clbind::function_traits<void (&)(float, char, int)>::args,
+        std::tuple<float, char, int>>,
+    "function reference argument type mismatch");
+
+static_assert(
+    std::is_same_v<clbind::function_traits<void (&)()>::args, std::tuple<>>,
+    "function reference argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (&)(float, char, int)>::return_type, void>,
+    "function reference return type mismatch");
+
+// ref qualifier
+static_assert(std::is_same_v<
+                  clbind::function_traits<void(float, char, int) const&&>::args,
+                  std::tuple<float, char, int>>,
+    "function reference argument type mismatch");
+
+static_assert(
+    std::is_same_v<clbind::function_traits<void() const&&>::args, std::tuple<>>,
+    "function reference argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void(float, char, int) const&&>::return_type,
+        void>,
+    "function reference return type mismatch");
+
+struct foo
+{
+};
+
+// member function pointer
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (foo::*)(float, char, int)>::args,
+        std::tuple<foo&, float, char, int>>,
+    "member function pointer argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (foo::*const&)(float, char, int)>::args,
+        std::tuple<foo&, float, char, int>>,
+    "member function pointer argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (foo::*)(float, char, int) const>::args,
+        std::tuple<const foo&, float, char, int>>,
+    "member function pointer argument type mismatch");
+
+static_assert(
+    std::is_same_v<
+        clbind::function_traits<void (foo::*)(float, char, int) &&>::args,
+        std::tuple<foo&&, float, char, int>>,
+    "member function pointer argument type mismatch");
+
+} // namespace detail
 } // namespace clbind
