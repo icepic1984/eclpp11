@@ -13,6 +13,9 @@
 ;; Load functions from this module
 (defvar *module-name* "/home/icepic/Code/build_clbind/libtestPackage.so")
 (defvar *module* (si:load-foreign-module *module-name*))
+
+(ffi:def-function ( "init" init) ()  :module *module-name* :returning :void )
+
 ;; (si:unload-foreign-module *module*)
 ;; Dynamically load foreign library (not needed if dynamic version of def-function is used)
 
@@ -22,12 +25,65 @@
          (progn
            (make-package pack-name)
            (eval `(in-package ,pack-name))
-           (register-package pack-name (si:find-foreign-symbol func-name *module-name* :pointer-void 0)))
+           ;;(register-package pack-name (si:find-foreign-symbol func-name *module-name* :pointer-void 0)))
+           (init))
       (eval `(in-package ,curr-pack)))))
 
 (delete-package "MY-TEST")
+
 (add-package "MY-TEST" "test")
+
+(add-package "my-test2" "test")
+
+(add-package "bla" "test")
+
+(use-package 'bla)
+
+(bla:blup 20 10)
+
+(make-package 'test)
+
+(intern "temp-sym"  'test)
+
+(in-package "TEST")
+(setq temp-sym 10)
+(export (find-symbol "temp-sym"))
+(in-package "CL-USER")
+
+(use-package 'test)
+temp-sym
+
+(find-package "my-test2")
+(do-all-symbols (sym (find-package "my-test2")) (export sym))
+
+(do-all-symbols (sym (find-package "bla")) (print sym))
+
+(in-package "my-test2")
+(let ((pack (find-package "my-test2")))
+  (do-all-symbols (sym pack) (when (eql (symbol-package sym) pack) (progn (print sym) (export sym)))))
+(in-package "CL-USER")
+
+
+
+(use-package "my-test2")
+
+(export (intern "test" (make-package 'trash)) 'trash)
+
+(my-test:blup 20 10)
+(use-package "MY-TEST")
+(do-external-symbols (s (find-package "MY-TEST"))
+  (print (MY-Test
+
+
+(my-test:blup 20 10)
+
+
 ;; (ffi:load-foreign-library  "/home/icepic/Code/build_clbind/libtestPackage.so")
+
+
+
+(make-package "blup")
+(intern "ererer"  (find-package "blup"))
 
 
 ;; Define registerPackage function
@@ -48,8 +104,6 @@
 
 (defvar b (coerce "bla" 'cstring))
 (si:call-cfun *str-param-cfunc* :void  (list :cstring) (list "bdfdfla") :default)
-
-
 
 
 
