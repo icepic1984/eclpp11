@@ -23,7 +23,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(clbind INTERFACE)
 target_sources(clbind INTERFACE
     "${CMAKE_CURRENT_LIST_DIR}/include/clbind/package.hpp"
-    "${CMAKE_CURRENT_LIST_DIR}/include/clbind/function_traits.hpp")
+    "${CMAKE_CURRENT_LIST_DIR}/include/clbind/function_traits.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/include/clbind/convert_types.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/include/clbind/ecl_utilities.hpp")
 target_include_directories(clbind INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(clbind INTERFACE Ecl::Ecl)
 add_library(clbind::clbind ALIAS clbind)

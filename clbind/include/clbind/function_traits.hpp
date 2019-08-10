@@ -1,16 +1,19 @@
+#pragma once
+#include <tuple>
+
 // as seen on http://functionalcpp.wordpress.com/2013/08/05/function-traits/
 namespace clbind
 {
 
-template <class T>
+template <typename T>
 struct dependent_false : std::false_type
 {
 };
 
-template <class F>
+template <typename F>
 struct function_traits;
 
-template <class R, class... Args>
+template <typename R, typename... Args>
 struct function_traits<R(Args...)>
 {
     using return_type = R;
@@ -20,41 +23,41 @@ struct function_traits<R(Args...)>
     using args = std::tuple<Args...>;
 };
 
-template <class R, class... Args>
+template <typename R, typename... Args>
 struct function_traits<R (*)(Args...)> : public function_traits<R(Args...)>
 {
 };
 
-template <class R, class... Args>
+template <typename R, typename... Args>
 struct function_traits<R(Args...) const&&> : public function_traits<R(Args...)>
 {
 };
 
-template <class C, class R, class... Args>
+template <typename C, typename R, typename... Args>
 struct function_traits<R (C::*)(Args...)>
     : public function_traits<R(C&, Args...)>
 {
 };
 
-template <class C, class R, class... Args>
+template <typename C, typename R, typename... Args>
 struct function_traits<R (C::*)(Args...) const>
     : public function_traits<R(const C&, Args...)>
 {
 };
 
-template <class C, class R, class... Args>
+template <typename C, typename R, typename... Args>
 struct function_traits<R (C::*)(Args...) &&>
     : public function_traits<R(C&&, Args...)>
 {
 };
 
-template <class C, class R, class... Args>
+template <typename C, typename R, typename... Args>
 struct function_traits<R (C::*const&)(Args...)>
     : public function_traits<R(C&, Args...)>
 {
 };
 
-template <class C, class R>
+template <typename C, typename R>
 struct function_traits<R(C::*)> : public function_traits<R(C&)>
 {
 };
@@ -64,15 +67,21 @@ struct function_traits : public function_traits<decltype(&F::operator())>
 {
 };
 
-template <class F>
+template <typename F>
 struct function_traits<F&> : public function_traits<F>
 {
 };
 
-template <class F>
+template <typename F>
 struct function_traits<F&&> : public function_traits<F>
 {
 };
+
+template <typename F>
+using function_args_t = typename function_traits<F>::args;
+
+template <typename F>
+using function_return_type_t = typename function_traits<F>::return_type;
 
 // Unit tests
 namespace detail
