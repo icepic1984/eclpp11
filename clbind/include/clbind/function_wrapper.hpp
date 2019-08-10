@@ -1,6 +1,10 @@
 #pragma once
 
+#include <tuple>
+#include <functional>
+#include <utility>
 #include <ecl/ecl.h>
+
 #include <clbind/function_traits.hpp>
 #include <clbind/ecl_utilities.hpp>
 
@@ -18,7 +22,7 @@ struct function_wrapper<std::tuple<Args...>>
     template <typename F>
     static cl_object wrap(F&& f, cl_object frame)
     {
-        wrap_helper(
+        return wrap_helper(
             std::forward<F>(f), std::index_sequence_for<Args...>{}, frame);
     }
 
@@ -50,7 +54,7 @@ private:
 template <typename F>
 cl_object wrap(F&& func, cl_object frame)
 {
-    detail::function_wrapper<function_args_t<F>>::wrap(
+    return detail::function_wrapper<function_args_t<F>>::wrap(
         std::forward<F>(func), frame);
 }
 

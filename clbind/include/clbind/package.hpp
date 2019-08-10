@@ -1,6 +1,7 @@
 #pragma once
 
 #include <clbind/convert_types.hpp>
+#include <clbind/function_wrapper.hpp>
 #include <clbind/ecl_utilities.hpp>
 #include <string>
 #include <iostream>
@@ -74,9 +75,29 @@ private:
     std::unordered_map<std::string, std::shared_ptr<package>> m_registry;
 };
 
+template <typename F>
+void defun(const char* package_name, const char* symbol_name, F f)
+{
+    static auto callback =
+        +[](void* f, cl_object arglist) { return wrap((F)f, arglist); };
+
+    define_function(package_name, symbol_name, callback, (void*)f);
+}
+
 } // namespace clbind
 
+int bla(int a, int b)
+{
+    return a + b;
+}
+
 extern "C" {
+
+void init()
+{
+    clbind::defun("bla", "blup", bla);
+}
+
 bool register_package(
     const char* name, void (*register_callback)(clbind::package&))
 {
