@@ -6,6 +6,20 @@ namespace clbind
 {
 
 template <typename T>
+struct remove_first_type
+{
+};
+
+template <typename T, typename... Ts>
+struct remove_first_type<std::tuple<T, Ts...>>
+{
+    using type = std::tuple<Ts...>;
+};
+
+template <typename T>
+using remove_first_type_t = typename remove_first_type<T>::type;
+
+template <typename T>
 struct dependent_false : std::false_type
 {
 };
@@ -63,8 +77,17 @@ struct function_traits<R(C::*)> : public function_traits<R(C&)>
 };
 
 template <typename F>
-struct function_traits : public function_traits<decltype(&F::operator())>
+struct function_traits
 {
+private:
+    using call_type = function_traits<decltype(&F::operator())>;
+
+public:
+    using return_type = typename call_type::return_type;
+
+    static constexpr std::size_t size = call_type::size - 1;
+
+    using args = remove_first_type_t<typename call_type::args>;
 };
 
 template <typename F>
