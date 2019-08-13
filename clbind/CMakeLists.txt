@@ -32,6 +32,9 @@ add_library(clbind::clbind ALIAS clbind)
 
 add_library(testPackage SHARED "examples/test_package.cpp")
 target_link_libraries(testPackage clbind::clbind)
+if(MINGW)
+    target_link_libraries(testPackage -static gcc stdc++ winpthread -dynamic)
+endif(MINGW)
 
 add_executable(package "examples/test_package.cpp")
 target_link_libraries(package clbind::clbind)
