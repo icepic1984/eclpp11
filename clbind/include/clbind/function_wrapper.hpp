@@ -49,6 +49,16 @@ private:
     using Tuple = std::tuple<Args...>;
 };
 
+template <typename R, typename... Args, std::size_t... Index>
+cl_object wrapper(const std::function<R(Args...)>& f, cl_object frame,
+    std::index_sequence<Index...>)
+{
+    return clbind::to_ecl<R>(std::invoke(
+        f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
+               clbind::nth_arg(frame, Index))...));
+
+} // namespace detail
+
 } // namespace detail
 
 template <typename F>
@@ -56,6 +66,13 @@ cl_object wrap(F&& func, cl_object frame)
 {
     return detail::function_wrapper<function_args_t<F>>::wrap(
         std::forward<F>(func), frame);
+}
+
+template <typename R, typename... Args>
+cl_object wrap2(const std::function<R(Args...)>& f, cl_object frame)
+{
+
+    return detail::wrapper(f, frame, std::index_sequence_for<Args...>{});
 }
 
 } // namespace clbind
