@@ -108,6 +108,14 @@ void defun2(const char* package_name, const char* symbol_name,
 
 template <typename R, typename LambdaT, typename... ArgsT>
 void add_lambda(const char* package_name, const char* symbol_name,
+    LambdaT&& lambda, R (LambdaT::*)(ArgsT...))
+{
+    return defun2(package_name, symbol_name,
+        std::function<R(ArgsT...)>(std::forward<LambdaT>(lambda)));
+}
+
+template <typename R, typename LambdaT, typename... ArgsT>
+void add_lambda(const char* package_name, const char* symbol_name,
     LambdaT&& lambda, R (LambdaT::*)(ArgsT...) const)
 {
     return defun2(package_name, symbol_name,
@@ -121,6 +129,37 @@ void defun2(const char* package_name, const char* symbol_name, LambdaT&& lambda)
         &LambdaT::operator());
 }
 
+class fw
+{
+public:
+    virtual const void* pointer() = 0;
+
+    virtual ~fw() = default;
+
+    fw(const fw&) = delete;
+
+    fw& operator=(const fw&) = delete;
+};
+
+template <typename R, typename... Args>
+class fwb : public fw
+{
+public:
+    using functor_t = std::function<R(Args...)>;
+
+    explicit fwb(const functor_t& f)
+    {
+        m_function = f;
+    }
+
+    const void* ptr() final
+    {
+        return reinterpret_cast<const void*>(&m_function);
+    }
+
+private:
+    functor_t m_function;
+};
 } // namespace clbind
 
 int global = 0;
@@ -129,27 +168,29 @@ int bla(int a, int b)
     return a + b;
 }
 
-template <typename F>
-void func(F f)
+struct op
 {
-    static_assert(clbind::function_traits<F>::size == 2);
-    static_assert(
-        std::is_same_v<clbind::function_args_t<F>, std::tuple<int, int>>);
-}
+    int fu = 100;
+    int operator()(int a, int b)
+    {
+        return fu + a - b;
+    }
+};
 
 int a = 666;
+extern "C" {
 void reg()
 {
     clbind::defun("BLA", "BLUP2", bla);
     clbind::defun2("BLA", "BLUP3", [](int a, int b) { return a + b; });
     clbind::defun2("BLA", "BLUP4", [&a](int b, int c) { return a + b + c; });
+    clbind::defun2("BLA", "BLUP5", op{});
     // clbind::defun("BLA", "BLUP", [](int a, int b) { return a + b; });
 
     // auto l = [](int a, int b) { return a + b; };
     // func([&global](int a, int b) mutable { return a + b; });
     //  clbind::defun("BLA", "BLUP3", [](int a, int b) { return a + b; });
 }
-extern "C" {
 
 void init()
 {
