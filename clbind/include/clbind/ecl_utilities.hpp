@@ -61,18 +61,27 @@ static cl_object callback_function(cl_narg narg, ...)
     }
 }
 
-void define_function(cl_object symbol, callback_t callback, void* f)
+void define_function(
+    cl_object package, cl_object symbol, callback_t callback, void* f)
 {
     cl_object env = ecl_cons((cl_object)callback, (cl_object)f);
     cl_object fn = ecl_make_cclosure_va(callback_function, env, ECL_NIL);
     si_fset(2, symbol, fn);
-    cl_export(1, symbol);
+    cl_export2(symbol, package);
 }
 
 void define_function(
     const char* package, const char* name, callback_t callback, void* f)
 {
-    define_function(symbol(package, name), callback, f);
+    cl_object pack = ecl_find_package(package);
+    if (pack == ECL_NIL || type_of(pack) != t_package)
+    {
+        std::stringstream ss;
+        ss << "The package \"" << package << "\" was not found.";
+        throw std::runtime_error(ss.str());
+    }
+
+    define_function(pack, symbol(package, name), callback, f);
 }
 
 struct return_stack
