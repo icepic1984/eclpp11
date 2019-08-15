@@ -3,6 +3,8 @@
 #include <clbind/convert_types.hpp>
 #include <clbind/function_wrapper.hpp>
 #include <clbind/ecl_utilities.hpp>
+#include <clbind/print_type.hpp>
+#include <clbind/function_traits.hpp>
 #include <string>
 #include <iostream>
 #include <memory>
@@ -37,7 +39,53 @@ public:
         add_lambda(name, std::forward<LambdaT>(lambda), &LambdaT::operator());
     }
 
+    template <typename F>
+    void defun2(const std::string& name, F&& func)
+    {
+        defun2Impl(name, std::forward<F>(func));
+    }
+
+    template <typename F>
+    auto defun3(const std::string& name, F&& func) -> decltype(auto)
+    {
+        // typename function_traits<F>::func_type f(std::forward<F>(func));
+        // typename function_traits<F>::func_type a;
+        // static_assert(std::is_same_v<typename function_traits<F>::func_type,
+        //     std::function<int(int)>>);
+        typename as_function<function_return_type_t<F>,
+            function_args_t<F>>::type f(std::forward<F>(func));
+        return f;
+        // return typename function_traits<F>::func_type f(std::forward(func));
+    }
+
 private:
+    template <typename Return, typename... Args>
+    void defun2Impl(const std::string& name, Return (*func)(Args...))
+    {
+        std::function<Return(Args...)> function(
+            std::forward<decltype(func)>(func));
+        std::cout << function(10, 20) << std::endl;
+    }
+
+    template <typename Class, typename Return, typename... Args>
+    void defun2Impl(const std::string& name, Return (Class::*func)(Args...))
+    {
+        defun2Impl<Return(Class&, Args...)>(
+            name, std::forward<decltype(func)>(func));
+    }
+
+    template <typename R, typename Class, typename... Args>
+    void defun2Impl(
+        const std::string& name, Class&& functor, R (Class::*)(Args...) const)
+    {
+    }
+
+    template <typename Functor>
+    void defun2Impl(const std::string& name, Functor&& functor)
+    {
+        defun2Impl(name, std::forward<Functor>(functor), &Functor::operator());
+    }
+
     template <typename R, typename LambdaT, typename... ArgsT>
     void add_lambda(const std::string& name, LambdaT&& lambda,
         R (LambdaT::*)(ArgsT...) const)
@@ -74,13 +122,6 @@ private:
 
     std::unordered_map<std::string, std::shared_ptr<package>> m_registry;
 };
-
-template <typename T>
-void print_type_in_compilation_error(T&&)
-{
-    static_assert(std::is_same<T, int>::value && !std::is_same<T, int>::value,
-        "Compilation failed because you wanted to read the type. See below");
-}
 
 template <typename F>
 void defun(const char* package_name, const char* symbol_name, F f)
@@ -177,10 +218,20 @@ struct op
     }
 };
 
+struct op2
+{
+    int b = -100;
+    int test(int a)
+    {
+        return a + 123 - b;
+    }
+};
+
 int a = 666;
 extern "C" {
 void reg()
 {
+
     clbind::defun("BLA", "BLUP2", bla);
     clbind::defun2("BLA", "BLUP3", [](int a, int b) { return a + b; });
     clbind::defun2("BLA", "BLUP4", [&a](int b, int c) { return a + b + c; });
@@ -201,7 +252,23 @@ bool register_package(
     const char* name, void (*register_callback)(clbind::package&))
 {
     auto package = clbind::registry::get_registry().create_package(name);
-    register_callback(package);
+    // register_callback(package);
+    package.defun2("bla", bla);
+    package.defun2("blup", [&a](int b) { return a + b; });
+
+    auto b = package.defun3("blup", [](int a, int c) { return a; });
+    auto c = package.defun3("blup", [&a](int b) { return a + b; });
+    auto d = package.defun3("blup", op{});
+    auto e = package.defun3("blup", &op2::test);
+    std::cout << "defun3 b" << b(10, 20) << std::endl;
+    std::cout << "defun3 c" << c(100) << std::endl;
+    std::cout << "defun3 d" << d(10, 20) << std::endl;
+    op2 p;
+    std::cout << "defun3 e" << e(p, 10) << std::endl;
+
+    std::function<int(op2&&, int)> f(&op2::test);
+    std::cout << f(op2{}, 10) << std::endl;
+    std::cout << f(p, 10) << std::endl;
     return true;
 }
 }
