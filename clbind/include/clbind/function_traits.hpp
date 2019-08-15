@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <functional>
 
 // as seen on http://functionalcpp.wordpress.com/2013/08/05/function-traits/
 namespace clbind
@@ -105,6 +106,15 @@ using function_args_t = typename function_traits<F>::args;
 
 template <typename F>
 using function_return_type_t = typename function_traits<F>::return_type;
+
+template <typename R, typename Args>
+struct as_function;
+
+template <typename R, typename... Args>
+struct as_function<R, std::tuple<Args...>>
+{
+    using type = std::function<R(Args...)>;
+};
 
 // Unit tests
 namespace detail
