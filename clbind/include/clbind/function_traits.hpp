@@ -116,6 +116,9 @@ struct as_function<R, std::tuple<Args...>>
     using type = std::function<R(Args...)>;
 };
 
+template <typename R, typename... Args>
+using as_function_t = typename as_function<R, Args...>::type;
+
 // Unit tests
 namespace detail
 {
