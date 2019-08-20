@@ -140,8 +140,7 @@ private:
 };
 } // namespace clbind
 
-int global = 0;
-int bla(int a, int b)
+int func_pointer(int a, int b)
 {
     return a + b;
 }
@@ -202,6 +201,8 @@ bool register_package(
     auto f = package.defun("blup", functor_const{});
     auto g = package.defun("blup", &operator_test::test);
     auto h = package.defun("blup", &operator_test_const::test);
+    auto i = package.defun("blup", func_pointer);
+    auto j = package.defun("blup", &func_pointer);
 
     std::cout << "b: " << b(20, 20) << std::endl;
     std::cout << "c: " << c(20) << std::endl;
@@ -210,6 +211,8 @@ bool register_package(
     std::cout << "f: " << f(20, 20) << std::endl;
     std::cout << "g: " << g(ot, 20) << std::endl;
     std::cout << "h: " << h(otc, 20) << std::endl;
+    std::cout << "i " << i(10, 20) << std::endl;
+    std::cout << "j: " << j(1, 20) << std::endl;
 
     // package.defun("blup", [&a](int b) { return a + b; });
 
