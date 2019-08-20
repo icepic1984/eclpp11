@@ -60,53 +60,6 @@ private:
     std::unordered_map<std::string, std::shared_ptr<package>> m_registry;
 };
 
-template <typename F>
-void defun(const char* package_name, const char* symbol_name, F f)
-{
-    static auto callback = +[](void* f, cl_object arglist) {
-        return wrap(reinterpret_cast<F>(f), arglist);
-    };
-
-    define_function(
-        package_name, symbol_name, callback, reinterpret_cast<void*>(f));
-}
-
-template <typename R, typename... Args>
-void defun2(const char* package_name, const char* symbol_name,
-    std::function<R(Args...)> f)
-{
-    std::function<R(Args...)>* tmp = new std::function<R(Args...)>(f);
-    auto callback = +[](void* f2, cl_object argslist) {
-        return wrap2(
-            *reinterpret_cast<std::function<R(Args...)>*>(f2), argslist);
-    };
-    define_function(
-        package_name, symbol_name, callback, reinterpret_cast<void*>(tmp));
-}
-
-template <typename R, typename LambdaT, typename... ArgsT>
-void add_lambda(const char* package_name, const char* symbol_name,
-    LambdaT&& lambda, R (LambdaT::*)(ArgsT...))
-{
-    return defun2(package_name, symbol_name,
-        std::function<R(ArgsT...)>(std::forward<LambdaT>(lambda)));
-}
-
-template <typename R, typename LambdaT, typename... ArgsT>
-void add_lambda(const char* package_name, const char* symbol_name,
-    LambdaT&& lambda, R (LambdaT::*)(ArgsT...) const)
-{
-    return defun2(package_name, symbol_name,
-        std::function<R(ArgsT...)>(std::forward<LambdaT>(lambda)));
-}
-
-template <typename LambdaT>
-void defun2(const char* package_name, const char* symbol_name, LambdaT&& lambda)
-{
-    add_lambda(package_name, symbol_name, std::forward<LambdaT>(lambda),
-        &LambdaT::operator());
-}
-
 class fw
 {
 public:
