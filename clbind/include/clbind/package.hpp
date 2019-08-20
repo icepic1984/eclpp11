@@ -28,7 +28,6 @@ public:
             as_function_t<function_return_type_t<F>, function_args_t<F>>;
 
         return func_type(std::forward<F>(func));
-        // auto f = defunImpl(name, std::forward<F>(func));
     }
 
 private:
@@ -167,19 +166,6 @@ bool register_package(
     std::cout << "i " << i(10, 20) << std::endl;
     std::cout << "j: " << j(1, 20) << std::endl;
 
-    // package.defun("blup", [&a](int b) { return a + b; });
-
-    // package.defun("blup", &op2::test);
-    // std::cout << "defun3 b" << b(10, 20) << std::endl;
-    // std::cout << "defun3 c" << c(100) << std::endl;
-    // std::cout << "defun3 d" << d(10, 20) << std::endl;
-    // const op2 p;
-    // std::cout << "defun3 e" << e(p, 10) << std::endl;
-
-    // std::function<int(op2&, int)> f(&op2::test);
-
-    // std::cout << f(p, 10) << std::endl;
-    // std::cout << f(p, 10) << std::endl;
     return true;
 }
 }
