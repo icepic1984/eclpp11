@@ -24,54 +24,67 @@ public:
     template <typename F>
     void defun(const std::string& name, F&& func)
     {
-        defunImpl(name, std::forward<F>(func));
+        // auto f = defunImpl(name, std::forward<F>(func));
+    }
+
+    template <typename F>
+    decltype(auto) test_defun(const std::string& name, F&& func)
+    {
+
+        typename as_function<function_return_type_t<F>,
+            function_args_t<F>>::type f(std::forward<F>(func));
+        return f;
     }
 
 private:
     template <typename Return, typename... Args>
-    void defunImpl(const std::string& name, Return (*func)(Args...))
+    decltype(auto) defunImpl(const std::string& name, Return (*func)(Args...))
     {
-        std::function<Return(Args...)> function(
+        return std::function<Return(Args...)>(
             std::forward<decltype(func)>(func));
     }
 
     // For function member point
     template <typename Return, typename Class, typename... Args>
-    void defunImpl(const std::string& name, Return (Class::*func)(Args...))
+    decltype(auto) defunImpl(
+        const std::string& name, Return (Class::*func)(Args...))
     {
-        defunImpl<Return, Class, Args...>(name, func);
+        // return defunImpl<Return, Class, Args...>(name, func);
+        return std::function<Return(Class&, Args...)>(func);
     }
 
     // For const function member point
     template <typename Return, typename Class, typename... Args>
-    void defunImpl(
+    decltype(auto) defunImpl(
         const std::string& name, Return (Class::*func)(Args...) const)
     {
-        defunImpl<Return, const Class, Args...>(name, func);
+        return std::function<Return(const Class&, Args...)>(func);
+        // return defunImpl<Return, Class, Args...>(name, func);
     }
 
     // For functor with const member function
     template <typename Return, typename Class, typename... Args>
-    void defunImpl(const std::string& name, Class&& functor,
+    decltype(auto) defunImpl(const std::string& name, Class&& functor,
         Return (Class::*func)(Args...) const)
     {
-        defunImpl<Return, const Class, Args...>(
-            name, std::forward<Class>(functor), func);
+
+        return std::function<Return(Args...)>(std::forward<Class>(functor));
     }
 
     // For functor with non constant member function
     template <typename Return, typename Class, typename... Args>
-    void defunImpl(
+    decltype(auto) defunImpl(
         const std::string& name, Class&& functor, Return (Class::*)(Args...))
     {
-        std::function<Return(Args...)> f(std::forward<Class>(functor));
+        return std::function<Return(Args...)>(std::forward<Class>(functor));
     }
 
     // For functor (dispatches to const vs non const overload)
     template <typename Functor>
-    void defunImpl(const std::string& name, Functor&& functor)
+    decltype(auto) defunImpl(const std::string& name, Functor&& functor)
     {
-        defunImpl(name, std::forward<Functor>(functor), &Functor::operator());
+        return defunImpl(
+            name, std::forward<Functor>(functor), &Functor::operator());
     }
 
     std::string m_name;
@@ -234,14 +247,14 @@ bool register_package(
 {
     auto package = clbind::registry::get_registry().create_package(name);
     // register_callback(package);
-    package.defun("blup", [](int a, int c) { return a; });
-    package.defun("blup", [&a](int b) { return a + b; });
-    package.defun("blup", [&a](int b) mutable { return a + b; });
+    auto b = package.test_defun("blup", [](int a, int c) { return a; });
+    auto c = package.test_defun("blup", [&a](int b) { return a + b; });
+    auto d = package.test_defun("blup", [&a](int b) mutable { return a + b; });
 
-    package.defun("blup", functor{});
-    package.defun("blup", functor_const{});
-    package.defun("blup", &operator_test::test);
-    package.defun("blup", &operator_test_const::test);
+    auto e = package.test_defun("blup", functor{});
+    auto f = package.test_defun("blup", functor_const{});
+    auto g = package.test_defun("blup", &operator_test::test);
+    auto h = package.test_defun("blup", &operator_test_const::test);
     // package.defun("blup", [&a](int b) { return a + b; });
 
     // package.defun("blup", &op2::test);
