@@ -22,77 +22,16 @@ public:
         : m_name(name){};
 
     template <typename F>
-    void defun(const std::string& name, F&& func)
+    decltype(auto) defun(const std::string& name, F&& func)
     {
+        using func_type =
+            as_function_t<function_return_type_t<F>, function_args_t<F>>;
+
+        return func_type(std::forward<F>(func));
         // auto f = defunImpl(name, std::forward<F>(func));
     }
 
-    template <typename F>
-    decltype(auto) test_defun2(const std::string& name, F&& func)
-    {
-        return defunImpl(name, std::forward<F>(func));
-    }
-
-    template <typename F>
-    decltype(auto) test_defun(const std::string& name, F&& func)
-    {
-
-        typename as_function<function_return_type_t<F>,
-            function_args_t<F>>::type f(std::forward<F>(func));
-        return f;
-    }
-
 private:
-    template <typename Return, typename... Args>
-    decltype(auto) defunImpl(const std::string& name, Return (*func)(Args...))
-    {
-        return std::function<Return(Args...)>(
-            std::forward<decltype(func)>(func));
-    }
-
-    // For function member point
-    template <typename Return, typename Class, typename... Args>
-    decltype(auto) defunImpl(
-        const std::string& name, Return (Class::*func)(Args...))
-    {
-        // return defunImpl<Return, Class, Args...>(name, func);
-        return std::function<Return(Class&, Args...)>(func);
-    }
-
-    // For const function member point
-    template <typename Return, typename Class, typename... Args>
-    decltype(auto) defunImpl(
-        const std::string& name, Return (Class::*func)(Args...) const)
-    {
-        return std::function<Return(const Class&, Args...)>(func);
-        // return defunImpl<Return, Class, Args...>(name, func);
-    }
-
-    // For functor with const member function
-    template <typename Return, typename Class, typename... Args>
-    decltype(auto) defunImpl(const std::string& name, Class&& functor,
-        Return (Class::*func)(Args...) const)
-    {
-
-        return std::function<Return(Args...)>(std::forward<Class>(functor));
-    }
-
-    // For functor with non constant member function
-    template <typename Return, typename Class, typename... Args>
-    decltype(auto) defunImpl(
-        const std::string& name, Class&& functor, Return (Class::*)(Args...))
-    {
-        return std::function<Return(Args...)>(std::forward<Class>(functor));
-    }
-
-    // For functor (dispatches to const vs non const overload)
-    template <typename Functor>
-    decltype(auto) defunImpl(const std::string& name, Functor&& functor)
-    {
-        return defunImpl(
-            name, std::forward<Functor>(functor), &Functor::operator());
-    }
-
     std::string m_name;
 };
 
@@ -256,13 +195,13 @@ bool register_package(
 
     auto package = clbind::registry::get_registry().create_package(name);
     // register_callback(package);
-    auto b = package.test_defun("blup", [](int a, int c) { return a; });
-    auto c = package.test_defun("blup", [&a](int b) { return a + b; });
-    auto d = package.test_defun("blup", [&a](int b) mutable { return a + b; });
-    auto e = package.test_defun("blup", functor{});
-    auto f = package.test_defun("blup", functor_const{});
-    auto g = package.test_defun("blup", &operator_test::test);
-    auto h = package.test_defun("blup", &operator_test_const::test);
+    auto b = package.defun("blup", [](int a, int c) { return a; });
+    auto c = package.defun("blup", [&a](int b) { return a + b; });
+    auto d = package.defun("blup", [&a](int b) mutable { return a + b; });
+    auto e = package.defun("blup", functor{});
+    auto f = package.defun("blup", functor_const{});
+    auto g = package.defun("blup", &operator_test::test);
+    auto h = package.defun("blup", &operator_test_const::test);
 
     std::cout << "b: " << b(20, 20) << std::endl;
     std::cout << "c: " << c(20) << std::endl;
