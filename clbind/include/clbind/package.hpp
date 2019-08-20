@@ -28,6 +28,12 @@ public:
     }
 
     template <typename F>
+    decltype(auto) test_defun2(const std::string& name, F&& func)
+    {
+        return defunImpl(name, std::forward<F>(func));
+    }
+
+    template <typename F>
     decltype(auto) test_defun(const std::string& name, F&& func)
     {
 
@@ -245,16 +251,27 @@ extern "C" {
 bool register_package(
     const char* name, void (*register_callback)(clbind::package&))
 {
+    const operator_test_const otc;
+    operator_test ot;
+
     auto package = clbind::registry::get_registry().create_package(name);
     // register_callback(package);
     auto b = package.test_defun("blup", [](int a, int c) { return a; });
     auto c = package.test_defun("blup", [&a](int b) { return a + b; });
     auto d = package.test_defun("blup", [&a](int b) mutable { return a + b; });
-
     auto e = package.test_defun("blup", functor{});
     auto f = package.test_defun("blup", functor_const{});
     auto g = package.test_defun("blup", &operator_test::test);
     auto h = package.test_defun("blup", &operator_test_const::test);
+
+    std::cout << "b: " << b(20, 20) << std::endl;
+    std::cout << "c: " << c(20) << std::endl;
+    std::cout << "d: " << d(10) << std::endl;
+    std::cout << "e: " << e(20, 20) << std::endl;
+    std::cout << "f: " << f(20, 20) << std::endl;
+    std::cout << "g: " << g(ot, 20) << std::endl;
+    std::cout << "h: " << h(otc, 20) << std::endl;
+
     // package.defun("blup", [&a](int b) { return a + b; });
 
     // package.defun("blup", &op2::test);
