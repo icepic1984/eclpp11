@@ -54,11 +54,20 @@ template <typename R, typename... Args, std::size_t... Index>
 cl_object wrapper(const std::function<R(Args...)>& f, cl_object frame,
     std::index_sequence<Index...>)
 {
-    return clbind::to_ecl<R>(std::invoke(
-        f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
-               clbind::nth_arg(frame, Index))...));
+    if constexpr (std::is_same_v<void, R>)
+    {
+        std::invoke(
+            f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
+                   clbind::nth_arg(frame, Index))...);
+        return ECL_NIL;
+    }
+    else
+    {
+        return clbind::to_ecl<R>(std::invoke(
+            f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
+                   clbind::nth_arg(frame, Index))...));
+    }
 }
-
 } // namespace detail
 
 class function_wrapper_base
