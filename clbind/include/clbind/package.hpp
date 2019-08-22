@@ -6,6 +6,7 @@
 #include <clbind/print_type.hpp>
 #include <clbind/function_traits.hpp>
 #include <string>
+#include <unordered_map>
 #include <iostream>
 #include <memory>
 #include <functional>
@@ -30,8 +31,29 @@ public:
         return func_type(std::forward<F>(func));
     }
 
+    template <typename F>
+    void defun2(const std::string& name, F&& func)
+    {
+        using func_type =
+            as_function_t<function_return_type_t<F>, function_args_t<F>>;
+
+        m_function_table.insert(std::make_pair(
+            name, make_function_wrapper(func_type(std::forward<F>(func)))));
+
+        static auto callback = +[](void* f, cl_object arglist) {
+            return wrap2(*reinterpret_cast<func_type*>(f), arglist);
+        };
+
+        define_function("TEST", name.c_str(), callback,
+            static_cast<void*>(m_function_table[name]->pointer()));
+    }
+
 private:
+    using function_t = std::unique_ptr<function_wrapper_base>;
+
     std::string m_name;
+
+    std::unordered_map<std::string, function_t> m_function_table;
 };
 
 class registry
@@ -59,37 +81,6 @@ private:
     std::unordered_map<std::string, std::shared_ptr<package>> m_registry;
 };
 
-class fw
-{
-public:
-    virtual const void* pointer() = 0;
-
-    virtual ~fw() = default;
-
-    fw(const fw&) = delete;
-
-    fw& operator=(const fw&) = delete;
-};
-
-template <typename R, typename... Args>
-class fwb : public fw
-{
-public:
-    using functor_t = std::function<R(Args...)>;
-
-    explicit fwb(const functor_t& f)
-    {
-        m_function = f;
-    }
-
-    const void* ptr() final
-    {
-        return reinterpret_cast<const void*>(&m_function);
-    }
-
-private:
-    functor_t m_function;
-};
 } // namespace clbind
 
 int func_pointer(int a, int b)
@@ -135,6 +126,8 @@ struct operator_test_const
 };
 
 int a = 0;
+const operator_test_const otc;
+operator_test ot;
 
 extern "C" {
 
@@ -144,27 +137,35 @@ bool register_package(
     const operator_test_const otc;
     operator_test ot;
 
-    auto package = clbind::registry::get_registry().create_package(name);
+    auto& package = clbind::registry::get_registry().create_package(name);
     // register_callback(package);
-    auto b = package.defun("blup", [](int a, int c) { return a; });
-    auto c = package.defun("blup", [&a](int b) { return a + b; });
-    auto d = package.defun("blup", [&a](int b) mutable { return a + b; });
-    auto e = package.defun("blup", functor{});
-    auto f = package.defun("blup", functor_const{});
-    auto g = package.defun("blup", &operator_test::test);
-    auto h = package.defun("blup", &operator_test_const::test);
-    auto i = package.defun("blup", func_pointer);
-    auto j = package.defun("blup", &func_pointer);
+    package.defun("blup1", [](int a, int c) { return a; });
+    package.defun("blup2", [&a](int b) { return a + b; });
+    package.defun("blup3", [&a](int b) mutable { return a + b; });
+    package.defun("blup4", functor{});
+    package.defun("blup5", functor_const{});
+    package.defun("blup6", &operator_test::test);
+    package.defun("blup7", &operator_test_const::test);
+    package.defun("blup8", func_pointer);
+    package.defun("blup9", &func_pointer);
 
-    std::cout << "b: " << b(20, 20) << std::endl;
-    std::cout << "c: " << c(20) << std::endl;
-    std::cout << "d: " << d(10) << std::endl;
-    std::cout << "e: " << e(20, 20) << std::endl;
-    std::cout << "f: " << f(20, 20) << std::endl;
-    std::cout << "g: " << g(ot, 20) << std::endl;
-    std::cout << "h: " << h(otc, 20) << std::endl;
-    std::cout << "i " << i(10, 20) << std::endl;
-    std::cout << "j: " << j(1, 20) << std::endl;
+    return true;
+}
+
+bool reg()
+
+{
+    auto& package = clbind::registry::get_registry().create_package("TEST");
+    // register_callback(package);
+    package.defun2("BLUP1", [](int a, int c) { return a; });
+    package.defun2("BLUP2", [&a](int b) { return a + b; });
+    package.defun2("BLUP3", [&a](int b) mutable { return a + b; });
+    package.defun2("BLUP4", functor{});
+    package.defun2("BLUP5", functor_const{});
+    // package.defun2("BLUP6", &operator_test::test);
+    // package.defun2("BLUP7", &operator_test_const::test);
+    package.defun2("BLUP8", func_pointer);
+    package.defun2("BLUP9", &func_pointer);
 
     return true;
 }
