@@ -166,6 +166,8 @@ bool reg()
     // package.defun2("BLUP7", &operator_test_const::test);
     package.defun2("BLUP8", func_pointer);
     package.defun2("BLUP9", &func_pointer);
+    package.defun2("BLA1", [&a]() { ++a; });
+    package.defun2("BLA2", [&a]() { return a; });
 
     return true;
 }
