@@ -25,6 +25,7 @@
 (ffi:def-function ( "init" init) ()  :module *module-name* :returning :void )
 
 (ffi:def-function ( "reg" reg) () :module *module-name* :returning :void)
+
 ;; (si:unload-foreign-module *module*)
 ;; Dynamically load foreign library (not needed if dynamic version of def-function is used)
 
@@ -38,18 +39,21 @@
            (reg))
       (eval `(in-package ,curr-pack)))))
 
-(delete-package "MY-TEST")
 
-(add-package "MY-TEST" "test")
+(add-package "TEST" "TEST")
 
-(add-package "my-test2" "test")
+(delete-package "TEST")
 
-(add-package "BLA" "test")
 
-(make-package "BLA")
+(test:bla1)
+(test:bla2)
 
-(delete-package "BLA")
 
+(test:blup1 10 20)
+(test:blup2 20)
+(test:blup4 20 30)
+(test:blup5 20 30)
+(test:blup9 10 20)
 (bla:blup2 10 20)
 (bla:blup3 10 20)
 (bla:blup4 10 20)
