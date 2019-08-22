@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tuple>
+#include <memory>
 #include <functional>
 #include <utility>
 #include <ecl/ecl.h>
@@ -56,10 +57,43 @@ cl_object wrapper(const std::function<R(Args...)>& f, cl_object frame,
     return clbind::to_ecl<R>(std::invoke(
         f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
                clbind::nth_arg(frame, Index))...));
+}
 
 } // namespace detail
 
-} // namespace detail
+class function_wrapper_base
+{
+public:
+    virtual void* pointer() = 0;
+
+    virtual ~function_wrapper_base() = default;
+
+    function_wrapper_base() = default;
+
+    function_wrapper_base(const function_wrapper_base&) = delete;
+
+    function_wrapper_base& operator=(const function_wrapper_base&) = delete;
+};
+
+template <typename R, typename... Args>
+class function_wrapper : public function_wrapper_base
+{
+public:
+    using functor_t = std::function<R(Args...)>;
+
+    explicit function_wrapper(functor_t&& f)
+        : m_function(std::move(f))
+    {
+    }
+
+    void* pointer() final
+    {
+        return reinterpret_cast<void*>(&m_function);
+    }
+
+private:
+    functor_t m_function;
+};
 
 template <typename F>
 cl_object wrap(F&& func, cl_object frame)
@@ -73,6 +107,13 @@ cl_object wrap2(const std::function<R(Args...)>& f, cl_object frame)
 {
 
     return detail::wrapper(f, frame, std::index_sequence_for<Args...>{});
+}
+
+template <typename R, typename... Args>
+std::unique_ptr<function_wrapper_base> make_function_wrapper(
+    std::function<R(Args...)>&& functor)
+{
+    return std::make_unique<function_wrapper<R, Args...>>(std::move(functor));
 }
 
 } // namespace clbind
