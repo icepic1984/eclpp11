@@ -3,91 +3,89 @@
 #include <type_traits>
 #include <functional>
 
+int func_pointer(int a, int b)
+{
+    return a + b;
+}
+
+struct functor
+{
+    int fu = 100;
+    int operator()(int a, int b)
+    {
+        return fu + a - b;
+    }
+};
+
+struct functor_const
+{
+    int fu = 100;
+    int operator()(int a, int b) const
+    {
+        return fu + a - b;
+    }
+};
+
+struct operator_test
+{
+    int b = -100;
+    int test(int a)
+    {
+        b = 10;
+        return a + 123 - b;
+    }
+};
+
+struct operator_test_const
+{
+    int b = -100;
+    int test(int a) const
+    {
+        return a + 123 - b;
+    }
+};
+
+int a = 0;
+const operator_test_const otc;
+operator_test ot;
+
 CLBIND_PACKAGE test(clbind::package& package)
 {
-    package.defun("test1", []() {});
-    package.defun("test2", []() {});
-    package.defun("test3", [](int a) { std::cout << a << std::endl; });
+    std::cout << "Start test" << std::endl;
+    package.defun("BLUP1", [](int a, int c) { return a; });
+    package.defun("BLUP2", [&a](int b) { return a + b; });
+    package.defun("BLUP3", [&a](int b) mutable { return a + b; });
+    package.defun("BLUP4", functor{});
+    package.defun("BLUP5", functor_const{});
+    // package.defun2("BLUP6", &operator_test::test);
+    // package.defun2("BLUP7", &operator_test_const::test);
+    package.defun("BLUP8", func_pointer);
+    package.defun("BLUP9", &func_pointer);
+    package.defun("BLA1", [&a]() { ++a; });
+    package.defun("BLA2", [&a]() { return a; });
+    std::cout << "End test" << std::endl;
 }
-
-void f(int a, double b)
-{
-}
-
-int g(void)
-{
-}
-
-int j(int a, double b)
-{
-}
-
-int cool(int a)
-{
-    return ++a;
-}
-
-int cool2(int a, int b, int c)
-{
-    return a + b + c;
-}
-void va(cl_narg narg, ...)
-{
-
-    ECL_STACK_FRAME_VARARGS_BEGIN(narg, narg, frame);
-    {
-        std::cout << ecl_t_of(clbind::nth_arg(frame, 2)) << std::endl;
-        std::cout << ecl_t_of(clbind::nth_arg(frame, 1)) << std::endl;
-        std::cout << clbind::to_cpp<int>(clbind::nth_arg(frame, 1))
-                  << std::endl;
-        std::cout << clbind::to_cpp<int>(clbind::nth_arg(frame, 2))
-                  << std::endl;
-    }
-    ECL_STACK_FRAME_VARARGS_END(frame);
-}
-
-int ft_test(int a, int b, int c)
-{
-}
-
-struct ft_op
-{
-    int operator()(int a, double b)
-    {
-        return 0;
-    }
-};
-
-struct ft_member
-{
-    typedef int (*Operation)(int a, int b);
-
-    int test(int a, double b)
-    {
-        return 0;
-    }
-
-    Operation b;
-
-    int c;
-};
 
 int main(int argc, char** args)
 {
 
     cl_boot(argc, args);
+    c_string_to_object("test2");
+    register_package("TEST2", &test);
 
-    struct ecl_stack_frame frame;
-    auto env = ecl_process_env();
-    auto name = ecl_stack_frame_open(env, (cl_object)&frame, 0);
-    ecl_stack_frame_push(name, clbind::to_ecl(5));
-    ecl_stack_frame_push(name, clbind::to_ecl(6));
-    ecl_stack_frame_push(name, clbind::to_ecl(7));
-    ecl_stack_frame_close(name);
+    // struct ecl_stack_frame frame;
+    // auto env = ecl_process_env();
+    // auto name = ecl_stack_frame_open(env, (cl_object)&frame, 0);
+    // ecl_stack_frame_push(name, clbind::to_ecl(5));
+    // ecl_stack_frame_push(name, clbind::to_ecl(6));
+    // ecl_stack_frame_push(name, clbind::to_ecl(7));
+    // ecl_stack_frame_close(name);
 
-    auto b = clbind::wrap(cool2, name);
-    std::cout << "wrap" << clbind::to_cpp<int>(b) << std::endl;
+    // auto b = clbind::wrap(cool2, name);
+    // std::cout << "wrap" << clbind::to_cpp<int>(b) << std::endl;
 
-    auto c = clbind::wrap(cool2, name);
-    std::cout << "wrap2" << clbind::to_cpp<int>(c) << std::endl;
+    // auto c = clbind::wrap(cool2, name);
+    // std::cout << "wrap2" << clbind::to_cpp<int>(c) << std::endl;
+
+    // register_package("test", nullptr);
 }

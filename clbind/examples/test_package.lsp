@@ -12,12 +12,8 @@
 
 ;; Load functions from this module
 (defvar *module-name* "/home/icepic/Code/build_clbind/libtestPackage.so")
-
 (defparameter *module-name* "c:\\Projects\\git\\build_clbind\\libtestPackage.dll")
-
-
 (defparameter *module-name* "libtestPackage.dll")
-
 (defparameter *module* (si:load-foreign-module *module-name*))
 
 (si:unload-foreign-module *module*)
@@ -25,6 +21,13 @@
 (ffi:def-function ( "init" init) ()  :module *module-name* :returning :void )
 
 (ffi:def-function ( "reg" reg) () :module *module-name* :returning :void)
+
+
+
+(ffi:def-function ( "register_package" reg) ((name :cstring) (pack :pointer-void)) :module *module-name* :returning :int )
+
+(ffi:def-function ("delete_package" del) ((name :cstring)) :module *module-name* :returning :int)
+
 
 ;; (si:unload-foreign-module *module*)
 ;; Dynamically load foreign library (not needed if dynamic version of def-function is used)
@@ -39,12 +42,20 @@
            (reg))
       (eval `(in-package ,curr-pack)))))
 
+(si:find-foreign-symbol "test" *module-name* :pointer-void 0)
+
+(reg "TEST2" (si:find-foreign-symbol "test" *module-name* :pointer-void 0))
+
+(del "TEST2")
 
 (add-package "TEST" "TEST")
 
 (delete-package "TEST")
 
-
+(test:bla1 )
+(test2:blup9 10 20)
+bla1
+(test:blup1
 (test:bla1)
 (test:bla2)
 
