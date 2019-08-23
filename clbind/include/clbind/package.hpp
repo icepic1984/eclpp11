@@ -20,19 +20,37 @@ class package
 {
 public:
     explicit package(const std::string& name)
-        : m_name(name){};
-
-    template <typename F>
-    decltype(auto) defun(const std::string& name, F&& func)
+        : m_name(name)
     {
-        using func_type =
-            as_function_t<function_return_type_t<F>, function_args_t<F>>;
+        make_package(m_name.c_str());
+    };
 
-        return func_type(std::forward<F>(func));
+    ~package() noexcept
+    {
+        if (!m_moved_from)
+        {
+            delete_package(m_name.c_str());
+        }
+    }
+
+    package(package&& other) noexcept
+        : m_name(std::move(other.m_name))
+        , m_function_table(std::move(other.m_function_table))
+
+    {
+        other.m_moved_from = true;
+    }
+
+    package& operator=(package&& other) noexcept
+    {
+        m_name = std::move(other.m_name);
+        m_function_table = std::move(other.m_function_table);
+        other.m_moved_from = true;
+        return *this;
     }
 
     template <typename F>
-    void defun2(const std::string& name, F&& func)
+    void defun(const std::string& name, F&& func)
     {
         using func_type =
             as_function_t<function_return_type_t<F>, function_args_t<F>>;
@@ -44,7 +62,7 @@ public:
             return wrap2(*reinterpret_cast<func_type*>(f), arglist);
         };
 
-        define_function("TEST", name.c_str(), callback,
+        define_function(m_name.c_str(), name.c_str(), callback,
             static_cast<void*>(m_function_table[name]->pointer()));
     }
 
@@ -54,6 +72,8 @@ private:
     std::string m_name;
 
     std::unordered_map<std::string, function_t> m_function_table;
+
+    bool m_moved_from = false;
 };
 
 class registry
@@ -61,8 +81,40 @@ class registry
 public:
     package& create_package(const std::string& name)
     {
-        m_registry[name] = std::make_shared<package>(name);
-        return *m_registry[name];
+        if (m_registry.find(name) != m_registry.end())
+        {
+            std::stringstream ss;
+            ss << "The package \"" << name << "\" already exists.";
+            throw std::runtime_error(ss.str());
+        }
+        m_registry.emplace(std::make_pair(name, package{name}));
+
+        return m_registry.at(name);
+    }
+
+    package& get_package(const std::string& name)
+    {
+        if (m_registry.find(name) == m_registry.end())
+        {
+            std::stringstream ss;
+            ss << "The package \"" << name << "\" does not exists.";
+            throw std::runtime_error(ss.str());
+        }
+        return m_registry.at(name);
+    }
+
+    void delete_package(const std::string& name)
+    {
+        if (auto iter = m_registry.find(name); iter == m_registry.end())
+        {
+            std::stringstream ss;
+            ss << "The package \"" << name << "\" does not exists.";
+            throw std::runtime_error(ss.str());
+        }
+        else
+        {
+            m_registry.erase(iter);
+        }
     }
 
     static registry& get_registry()
@@ -78,98 +130,46 @@ private:
 
     registry operator=(const registry) = delete;
 
-    std::unordered_map<std::string, std::shared_ptr<package>> m_registry;
+    std::unordered_map<std::string, package> m_registry;
 };
 
 } // namespace clbind
-
-int func_pointer(int a, int b)
-{
-    return a + b;
-}
-
-struct functor
-{
-    int fu = 100;
-    int operator()(int a, int b)
-    {
-        return fu + a - b;
-    }
-};
-
-struct functor_const
-{
-    int fu = 100;
-    int operator()(int a, int b) const
-    {
-        return fu + a - b;
-    }
-};
-
-struct operator_test
-{
-    int b = -100;
-    int test(int a)
-    {
-        b = 10;
-        return a + 123 - b;
-    }
-};
-
-struct operator_test_const
-{
-    int b = -100;
-    int test(int a) const
-    {
-        return a + 123 - b;
-    }
-};
-
-int a = 0;
-const operator_test_const otc;
-operator_test ot;
 
 extern "C" {
 
 bool register_package(
     const char* name, void (*register_callback)(clbind::package&))
 {
-    const operator_test_const otc;
-    operator_test ot;
-
     auto& package = clbind::registry::get_registry().create_package(name);
-    // register_callback(package);
-    package.defun("blup1", [](int a, int c) { return a; });
-    package.defun("blup2", [&a](int b) { return a + b; });
-    package.defun("blup3", [&a](int b) mutable { return a + b; });
-    package.defun("blup4", functor{});
-    package.defun("blup5", functor_const{});
-    package.defun("blup6", &operator_test::test);
-    package.defun("blup7", &operator_test_const::test);
-    package.defun("blup8", func_pointer);
-    package.defun("blup9", &func_pointer);
+    register_callback(package);
+    return true;
+}
 
+bool delete_package(const char* name)
+{
+    clbind::registry::get_registry().delete_package(name);
     return true;
 }
 
 bool reg()
 
 {
-    auto& package = clbind::registry::get_registry().create_package("TEST");
-    // register_callback(package);
-    package.defun2("BLUP1", [](int a, int c) { return a; });
-    package.defun2("BLUP2", [&a](int b) { return a + b; });
-    package.defun2("BLUP3", [&a](int b) mutable { return a + b; });
-    package.defun2("BLUP4", functor{});
-    package.defun2("BLUP5", functor_const{});
-    // package.defun2("BLUP6", &operator_test::test);
-    // package.defun2("BLUP7", &operator_test_const::test);
-    package.defun2("BLUP8", func_pointer);
-    package.defun2("BLUP9", &func_pointer);
-    package.defun2("BLA1", [&a]() { ++a; });
-    package.defun2("BLA2", [&a]() { return a; });
+    // auto& package = clbind::registry::get_registry().create_package("TEST");
+    // // register_callback(package);
+    // package.defun("BLUP1", [](int a, int c) { return a; });
+    // package.defun("BLUP2", [&a](int b) { return a + b; });
+    // package.defun("BLUP3", [&a](int b) mutable { return a + b; });
+    // package.defun("BLUP4", functor{});
+    // package.defun("BLUP5", functor_const{});
+    // // package.defun2("BLUP6", &operator_test::test);
+    // // package.defun2("BLUP7", &operator_test_const::test);
+    // package.defun("BLUP8", func_pointer);
+    // package.defun("BLUP9", &func_pointer);
+    // package.defun("BLA1", [&a]() { ++a; });
+    // package.defun("BLA2", [&a]() { return a; });
+    // clbind::registry::get_registry().delete_package("TEST");
 
-    return true;
+    // return true;
 }
 }
 #define CLBIND_PACKAGE extern "C" void

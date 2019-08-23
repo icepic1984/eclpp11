@@ -40,6 +40,23 @@ cl_object symbol(const char* name)
     return output;
 }
 
+void make_package(const char* name)
+{
+    cl_object output = cl_make_package(1, symbol(name));
+    if (output == ECL_NIL || type_of(output) != t_package)
+    {
+        std::stringstream ss;
+        ss << "The string \"" << name
+           << "\" does not name a valid package name.";
+        throw std::runtime_error(ss.str());
+    }
+}
+
+void delete_package(const char* name)
+{
+    cl_delete_package(symbol(name));
+}
+
 static cl_object callback_function(cl_narg narg, ...)
 {
     {
