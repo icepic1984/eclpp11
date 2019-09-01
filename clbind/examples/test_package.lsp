@@ -11,26 +11,27 @@
 (in-package "CL-USER")
 
 ;; Load functions from this module
-(defvar *module-name* "/home/icepic/Code/build_clbind/libtestPackage.so")
+(defparameter *module-name* "/home/icepic/Code/build_clbind/libtestPackage.so")
 (defparameter *module-name* "c:\\Projects\\git\\build_clbind\\libtestPackage.dll")
 (defparameter *module-name* "libtestPackage.dll")
+
 (defparameter *module* (si:load-foreign-module *module-name*))
 
 (si:unload-foreign-module *module*)
 
-(ffi:def-function ( "init" init) ()  :module *module-name* :returning :void )
-
-(ffi:def-function ( "reg" reg) () :module *module-name* :returning :void)
-
-
-
 (ffi:def-function ( "register_package" reg) ((name :cstring) (pack :pointer-void)) :module *module-name* :returning :int )
-
 (ffi:def-function ("delete_package" del) ((name :cstring)) :module *module-name* :returning :int)
 
+(reg "TEST2" (si:find-foreign-symbol "test" *module-name* :pointer-void 0))
+(del "TEST2")
+
+(test2:blup1 20 40 34)
 
 ;; (si:unload-foreign-module *module*)
 ;; Dynamically load foreign library (not needed if dynamic version of def-function is used)
+
+(defun test ()
+  (error "Wrong number of parameter ~D" 10))
 
 (defun add-package (pack-name func-name)
   (let ((curr-pack (package-name *package*)))
@@ -44,9 +45,6 @@
 
 (si:find-foreign-symbol "test" *module-name* :pointer-void 0)
 
-(reg "TEST2" (si:find-foreign-symbol "test" *module-name* :pointer-void 0))
-
-(del "TEST2")
 
 (add-package "TEST" "TEST")
 

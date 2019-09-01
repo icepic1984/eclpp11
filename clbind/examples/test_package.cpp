@@ -70,8 +70,9 @@ int main(int argc, char** args)
 {
 
     cl_boot(argc, args);
-    c_string_to_object("test2");
     register_package("TEST2", &test);
+    cl_safe_eval(ecl_read_from_cstring_safe("(test2:blup1 10 20)", ECL_NIL),
+        ECL_NIL, ECL_NIL);
 
     // struct ecl_stack_frame frame;
     // auto env = ecl_process_env();
