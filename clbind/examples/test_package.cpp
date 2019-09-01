@@ -45,13 +45,14 @@ struct operator_test_const
     }
 };
 
-int a = 0;
-const operator_test_const otc;
-operator_test ot;
+static int a = 0;
+static const operator_test_const otc;
+static operator_test ot;
 
 CLBIND_PACKAGE test(clbind::package& package)
 {
     std::cout << "Start test" << std::endl;
+    int* p = new int(10);
     package.defun("BLUP1", [](int a, int c) { return a; });
     package.defun("BLUP2", [&a](int b) { return a + b; });
     package.defun("BLUP3", [&a](int b) mutable { return a + b; });
@@ -61,6 +62,8 @@ CLBIND_PACKAGE test(clbind::package& package)
     // package.defun2("BLUP7", &operator_test_const::test);
     package.defun("BLUP8", func_pointer);
     package.defun("BLUP9", &func_pointer);
+    package.defun("BLUP10", [p](int a) { *p += a; });
+    package.defun("BLUP11", [p]() { return *p; });
     package.defun("BLA1", [&a]() { ++a; });
     package.defun("BLA2", [&a]() { return a; });
     std::cout << "End test" << std::endl;
