@@ -25,6 +25,11 @@ struct convert<int>
     {
         return ecl_make_int(v);
     }
+
+    static std::string type_string()
+    {
+        return " :int";
+    }
 };
 
 template <>
@@ -39,6 +44,11 @@ struct convert<float>
     {
         return ecl_make_single_float(v);
     }
+
+    static std::string type_string()
+    {
+        return " :float";
+    }
 };
 
 template <>
@@ -52,6 +62,11 @@ struct convert<double>
     static cl_object to_ecl(double v)
     {
         return ecl_make_double_float(v);
+    }
+
+    static std::string type_string()
+    {
+        return " :double";
     }
 };
 
@@ -68,6 +83,19 @@ decltype(auto) to_ecl(T&& v)
 {
     return clbind::detail::convert<std::decay_t<decltype(v)>>::to_ecl(
         std::forward<T>(v));
+}
+
+template <typename T>
+decltype(auto) to_type_string()
+{
+    if constexpr (std::is_same_v<void, T>)
+    {
+        return ":void";
+    }
+    else
+    {
+        return clbind::detail::convert<std::decay_t<T>>::type_string();
+    }
 }
 
 } // namespace clbind

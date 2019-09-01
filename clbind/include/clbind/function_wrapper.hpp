@@ -78,6 +78,17 @@ cl_object wrapper(const std::function<R(Args...)>& f, cl_object frame,
         return ECL_NIL;
     }
 }
+
+template <typename R, typename... Args, std::size_t... Index>
+std::string arguments_to_string(
+    const std::function<R(Args...)>& f, std::index_sequence<Index...>)
+{
+    return (std::string("( ") + ...
+               + clbind::to_type_string<
+                   std::tuple_element_t<Index, std::tuple<Args...>>>())
+           + std::string(" )");
+}
+
 } // namespace detail
 
 class function_wrapper_base
@@ -133,6 +144,12 @@ std::unique_ptr<function_wrapper_base> make_function_wrapper(
     std::function<R(Args...)>&& functor)
 {
     return std::make_unique<function_wrapper<R, Args...>>(std::move(functor));
+}
+
+template <typename R, typename... Args>
+std::string arguments_to_string(const std::function<R(Args...)>& f)
+{
+    return detail::arguments_to_string(f, std::index_sequence_for<Args...>{});
 }
 
 } // namespace clbind

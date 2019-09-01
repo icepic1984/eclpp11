@@ -3,7 +3,6 @@
 #include <clbind/convert_types.hpp>
 #include <clbind/function_wrapper.hpp>
 #include <clbind/ecl_utilities.hpp>
-#include <clbind/print_type.hpp>
 #include <clbind/function_traits.hpp>
 #include <string>
 #include <unordered_map>
@@ -15,6 +14,52 @@
 
 namespace clbind
 {
+
+class function
+{
+public:
+    using function_wrapper_t = std::unique_ptr<function_wrapper_base>;
+
+    explicit function(const std::string& name,
+        const std::string& return_type_string,
+        const std::string& argument_type_string,
+        function_wrapper_t&& function_wrapper)
+        : m_name(name)
+        , m_return_type_string(return_type_string)
+        , m_argument_type_string(argument_type_string)
+        , m_function_wrapper(std::move(function_wrapper))
+    {
+    }
+
+    std::string name() const
+    {
+        return m_name;
+    }
+
+    std::string argument_type_string() const
+    {
+        return m_argument_type_string;
+    }
+
+    std::string return_type_string()
+    {
+        return m_return_type_string;
+    }
+
+    void* pointer()
+    {
+        return m_function_wrapper->pointer();
+    }
+
+private:
+    std::string m_name;
+
+    std::string m_return_type_string;
+
+    std::string m_argument_type_string;
+
+    function_wrapper_t m_function_wrapper;
+};
 
 class package
 {
@@ -55,23 +100,29 @@ public:
         using func_type =
             as_function_t<function_return_type_t<F>, function_args_t<F>>;
 
-        m_function_table.insert(std::make_pair(
-            name, make_function_wrapper(func_type(std::forward<F>(func)))));
+        m_function_table.insert(std::make_pair(name,
+            function(name, clbind::to_type_string<function_return_type_t<F>>(),
+                clbind::arguments_to_string(func_type{}),
+                make_function_wrapper(func_type(std::forward<F>(func))))));
+
+        std::cout << "args" << clbind::arguments_to_string(func_type{})
+                  << std::endl;
+        std::cout << "return: "
+                  << clbind::to_type_string<function_return_type_t<F>>()
+                  << std::endl;
 
         static auto callback = +[](void* f, cl_object arglist) {
             return wrap2(*reinterpret_cast<func_type*>(f), arglist);
         };
 
         define_function(m_name.c_str(), name.c_str(), callback,
-            static_cast<void*>(m_function_table[name]->pointer()));
+            static_cast<void*>(m_function_table.at(name).pointer()));
     }
 
 private:
-    using function_t = std::unique_ptr<function_wrapper_base>;
-
     std::string m_name;
 
-    std::unordered_map<std::string, function_t> m_function_table;
+    std::unordered_map<std::string, function> m_function_table;
 
     bool m_moved_from = false;
 };
@@ -149,27 +200,6 @@ bool delete_package(const char* name)
 {
     clbind::registry::get_registry().delete_package(name);
     return true;
-}
-
-bool reg()
-
-{
-    // auto& package = clbind::registry::get_registry().create_package("TEST");
-    // // register_callback(package);
-    // package.defun("BLUP1", [](int a, int c) { return a; });
-    // package.defun("BLUP2", [&a](int b) { return a + b; });
-    // package.defun("BLUP3", [&a](int b) mutable { return a + b; });
-    // package.defun("BLUP4", functor{});
-    // package.defun("BLUP5", functor_const{});
-    // // package.defun2("BLUP6", &operator_test::test);
-    // // package.defun2("BLUP7", &operator_test_const::test);
-    // package.defun("BLUP8", func_pointer);
-    // package.defun("BLUP9", &func_pointer);
-    // package.defun("BLA1", [&a]() { ++a; });
-    // package.defun("BLA2", [&a]() { return a; });
-    // clbind::registry::get_registry().delete_package("TEST");
-
-    // return true;
 }
 }
 #define CLBIND_PACKAGE extern "C" void
