@@ -54,18 +54,28 @@ template <typename R, typename... Args, std::size_t... Index>
 cl_object wrapper(const std::function<R(Args...)>& f, cl_object frame,
     std::index_sequence<Index...>)
 {
-    if constexpr (std::is_same_v<void, R>)
+    try
     {
-        std::invoke(
-            f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
-                   clbind::nth_arg(frame, Index))...);
-        return ECL_NIL;
+        if constexpr (std::is_same_v<void, R>)
+        {
+            std::invoke(
+                f, clbind::to_cpp<
+                       std::tuple_element_t<Index, std::tuple<Args...>>>(
+                       clbind::nth_arg(frame, Index))...);
+            return ECL_NIL;
+        }
+        else
+        {
+            return clbind::to_ecl<R>(std::invoke(
+                f, clbind::to_cpp<
+                       std::tuple_element_t<Index, std::tuple<Args...>>>(
+                       clbind::nth_arg(frame, Index))...));
+        }
     }
-    else
+    catch (const std::exception& e)
     {
-        return clbind::to_ecl<R>(std::invoke(
-            f, clbind::to_cpp<std::tuple_element_t<Index, std::tuple<Args...>>>(
-                   clbind::nth_arg(frame, Index))...));
+        cl_error(1, ecl_make_constant_base_string(e.what(), -1));
+        return ECL_NIL;
     }
 }
 } // namespace detail
