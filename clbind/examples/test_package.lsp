@@ -1,3 +1,11 @@
+;; In Windows ECL comes with bytecodes compiler by default, because C
+;; compilers are normally not avaiable. Unfortunately several libraries
+;; out there are not prepared for this. If you plan to use quicklisp and
+;; have a C compiler accessible to ECL, you may
+;; use (ext:install-c-compiler) to switch back to the Lisp-to-C compiler.
+;; (ext:install-c-compiler)
+
+
 ;; Patch for def-lib-functions for linux
 (in-package "FFI")
 (defmacro def-lib-function (name args &key returning module (call :default))
